@@ -1,0 +1,472 @@
+// Shared data model for the Online Courses System (admin, teacher, student).
+// Keep this file identical across all three apps until it moves into a shared package.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  admin
+  teacher
+  student
+}
+
+enum EnrollmentStatus {
+  active
+  dropped
+}
+
+enum LessonStatus {
+  scheduled
+  moved
+  cancelled
+  done
+}
+
+enum AttendanceStatus {
+  present
+  late
+  absent
+  excused
+}
+
+enum SubmissionStatus {
+  submitted
+  late
+  graded
+  returned
+}
+
+enum MarkType {
+  classwork
+  quiz
+  exam
+  homework
+}
+
+// Set by the teacher on each attempt. null = not reviewed (yet, or replaced by a newer attempt).
+enum AttemptOutcome {
+  returned
+  graded
+}
+
+enum AuthTokenType {
+  reset
+}
+
+enum NotificationType {
+  new_homework
+  deadline
+  new_mark
+  lesson_changed
+  homework_returned
+}
+
+model User {
+  id                  String    @id @default(cuid())
+  name                String
+  email               String    @unique
+  passwordHash        String    @map("password_hash")
+  role                Role
+  timezone            String    @default("Asia/Baku")
+  locale              String? // "az" | "en" | "ru"; null until the user picks or first logs in
+  active              Boolean   @default(true)
+  sessionVersion      Int       @default(0) @map("session_version") // bump to sign out every device
+  mustChangePassword  Boolean   @default(false) @map("must_change_password") // set with a temporary password
+  createdAt           DateTime  @default(now()) @map("created_at")
+  // Privacy: which notice was accepted, and the deletion / retention timeline.
+  privacyVersion      Int?      @map("privacy_version")
+  privacyAcceptedAt   DateTime? @map("privacy_accepted_at")
+  deactivatedAt       DateTime? @map("deactivated_at")
+  deletionRequestedAt DateTime? @map("deletion_requested_at")
+  deletionApprovedAt  DateTime? @map("deletion_approved_at")
+  privateDataErasedAt DateTime? @map("private_data_erased_at")
+
+  teachingGroups          Group[]                  @relation("GroupTeacher")
+  taughtLessons           Lesson[]                 @relation("LessonTeacher")
+  enrollments             Enrollment[]
+  attendance              Attendance[]
+  submissions             Submission[]
+  uploads                 SubmissionFile[]
+  marks                   Mark[]                   @relation("MarkStudent")
+  marksGiven              Mark[]                   @relation("MarkCreator")
+  markChanges             MarkHistory[]
+  finalGrades             FinalGrade[]
+  notes                   StudentNote[]
+  todos                   StudentTodo[]
+  notifications           Notification[]
+  authTokens              AuthToken[]
+  notificationPreferences NotificationPreference[]
+  pushSubscriptions       PushSubscription[]
+
+  @@map("users")
+}
+
+model Course {
+  id           String  @id @default(cuid())
+  title        String
+  description  String?
+  gradingScale String  @default("0-100") @map("grading_scale")
+  archived     Boolean @default(false)
+
+  groups Group[]
+
+  @@map("courses")
+}
+
+model Term {
+  id        String   @id @default(cuid())
+  name      String
+  startDate DateTime @map("start_date") @db.Date
+  endDate   DateTime @map("end_date") @db.Date
+  locked    Boolean  @default(false)
+
+  groups      Group[]
+  finalGrades FinalGrade[]
+
+  @@map("terms")
+}
+
+model Group {
+  id        String @id @default(cuid())
+  courseId  String @map("course_id")
+  teacherId String @map("teacher_id")
+  termId    String @map("term_id")
+  name      String
+
+  course        Course         @relation(fields: [courseId], references: [id])
+  teacher       User           @relation("GroupTeacher", fields: [teacherId], references: [id])
+  term          Term           @relation(fields: [termId], references: [id])
+  enrollments   Enrollment[]
+  scheduleRules ScheduleRule[]
+  lessons       Lesson[]
+  homework      Homework[]
+  marks         Mark[]
+  finalGrades   FinalGrade[]
+
+  @@map("groups")
+}
+
+model Enrollment {
+  id        String           @id @default(cuid())
+  groupId   String           @map("group_id")
+  studentId String           @map("student_id")
+  status    EnrollmentStatus @default(active)
+
+  group   Group @relation(fields: [groupId], references: [id])
+  student User  @relation(fields: [studentId], references: [id])
+
+  @@unique([groupId, studentId])
+  @@map("enrollments")
+}
+
+model ScheduleRule {
+  id        String @id @default(cuid())
+  groupId   String @map("group_id")
+  weekday   Int // 0 = Sunday ... 6 = Saturday
+  startTime String @map("start_time") // "18:00"
+  endTime   String @map("end_time") // "19:30"
+
+  group Group @relation(fields: [groupId], references: [id])
+
+  @@map("schedule_rules")
+}
+
+model Lesson {
+  id         String       @id @default(cuid())
+  groupId    String       @map("group_id")
+  teacherId  String       @map("teacher_id")
+  startsAt   DateTime     @map("starts_at")
+  endsAt     DateTime     @map("ends_at")
+  topic      String?
+  meetingUrl String?      @map("meeting_url")
+  materials  String?
+  status     LessonStatus @default(scheduled)
+
+  group      Group         @relation(fields: [groupId], references: [id])
+  teacher    User          @relation("LessonTeacher", fields: [teacherId], references: [id])
+  attendance Attendance[]
+  homework   Homework[]
+  marks      Mark[]
+  notes      StudentNote[]
+
+  @@index([groupId, startsAt])
+  @@map("lessons")
+}
+
+model Attendance {
+  id        String           @id @default(cuid())
+  lessonId  String           @map("lesson_id")
+  studentId String           @map("student_id")
+  status    AttendanceStatus
+  note      String?
+
+  lesson  Lesson @relation(fields: [lessonId], references: [id])
+  student User   @relation(fields: [studentId], references: [id])
+
+  @@unique([lessonId, studentId])
+  @@map("attendance")
+}
+
+model Homework {
+  id          String   @id @default(cuid())
+  lessonId    String?  @map("lesson_id")
+  groupId     String   @map("group_id")
+  title       String
+  description String?
+  attachments String[]
+  dueAt       DateTime @map("due_at")
+  maxScore    Int      @default(100) @map("max_score")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  lesson      Lesson?          @relation(fields: [lessonId], references: [id])
+  group       Group            @relation(fields: [groupId], references: [id])
+  submissions Submission[]
+  uploads     SubmissionFile[]
+  marks       Mark[]
+
+  @@index([groupId, dueAt])
+  @@map("homework")
+}
+
+model Submission {
+  id          String           @id @default(cuid())
+  homeworkId  String           @map("homework_id")
+  studentId   String           @map("student_id")
+  content     String?
+  links       String[]
+  submittedAt DateTime         @default(now()) @map("submitted_at")
+  status      SubmissionStatus @default(submitted)
+  score       Int?
+  feedback    String?
+
+  homework Homework            @relation(fields: [homeworkId], references: [id])
+  student  User                @relation(fields: [studentId], references: [id])
+  attempts SubmissionAttempt[]
+
+  @@unique([homeworkId, studentId])
+  @@map("submissions")
+}
+
+model Mark {
+  id         String   @id @default(cuid())
+  studentId  String   @map("student_id")
+  groupId    String   @map("group_id")
+  lessonId   String?  @map("lesson_id")
+  homeworkId String?  @map("homework_id")
+  type       MarkType
+  value      Float
+  weight     Float    @default(1)
+  comment    String?
+  createdBy  String   @map("created_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  student  User          @relation("MarkStudent", fields: [studentId], references: [id])
+  group    Group         @relation(fields: [groupId], references: [id])
+  lesson   Lesson?       @relation(fields: [lessonId], references: [id])
+  homework Homework?     @relation(fields: [homeworkId], references: [id])
+  creator  User          @relation("MarkCreator", fields: [createdBy], references: [id])
+  history  MarkHistory[]
+
+  @@unique([studentId, homeworkId]) // one mark per homework; lesson marks have a null homeworkId
+  @@index([studentId, groupId])
+  @@map("marks")
+}
+
+model MarkHistory {
+  id        String   @id @default(cuid())
+  markId    String   @map("mark_id")
+  oldValue  Float    @map("old_value")
+  newValue  Float    @map("new_value")
+  changedBy String   @map("changed_by")
+  changedAt DateTime @default(now()) @map("changed_at")
+
+  mark          Mark @relation(fields: [markId], references: [id])
+  changedByUser User @relation(fields: [changedBy], references: [id])
+
+  @@map("mark_history")
+}
+
+model FinalGrade {
+  id        String  @id @default(cuid())
+  studentId String  @map("student_id")
+  groupId   String  @map("group_id")
+  termId    String  @map("term_id")
+  value     Float
+  published Boolean @default(false)
+
+  student User  @relation(fields: [studentId], references: [id])
+  group   Group @relation(fields: [groupId], references: [id])
+  term    Term  @relation(fields: [termId], references: [id])
+
+  @@unique([studentId, groupId, termId])
+  @@map("final_grades")
+}
+
+model StudentNote {
+  id        String   @id @default(cuid())
+  studentId String   @map("student_id")
+  date      DateTime @db.Date
+  lessonId  String?  @map("lesson_id")
+  text      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  student User    @relation(fields: [studentId], references: [id])
+  lesson  Lesson? @relation(fields: [lessonId], references: [id])
+
+  @@index([studentId, date])
+  @@map("student_notes")
+}
+
+model StudentTodo {
+  id        String    @id @default(cuid())
+  studentId String    @map("student_id")
+  title     String
+  dueAt     DateTime? @map("due_at")
+  done      Boolean   @default(false)
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  student User @relation(fields: [studentId], references: [id])
+
+  @@map("student_todos")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  payload   Json
+  readAt    DateTime?        @map("read_at")
+  // Same key for the same event, so a reminder is never sent twice.
+  dedupeKey String?          @map("dedupe_key")
+  emailedAt DateTime?        @map("emailed_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+// One-time links (password reset). Only the SHA-256 of the token is stored.
+model AuthToken {
+  id        String        @id @default(cuid())
+  userId    String        @map("user_id")
+  type      AuthTokenType
+  tokenHash String        @unique @map("token_hash")
+  expiresAt DateTime      @map("expires_at")
+  usedAt    DateTime?     @map("used_at")
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("auth_tokens")
+}
+
+// Used to limit password guessing. Rows older than a day are deleted on login.
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  ip        String
+  success   Boolean
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([email, createdAt])
+  @@index([ip, createdAt])
+  @@map("login_attempts")
+}
+
+// A file a student uploaded for a homework. submissionId is null until they press
+// Submit, so teachers only see files that were handed in.
+// A file a student uploaded for a homework. attemptId is null until they press
+// Submit, so teachers only see files that were handed in. When a student keeps
+// files for a new attempt, the rows are copied and share the same storageKey.
+model SubmissionFile {
+  id          String   @id @default(cuid())
+  homeworkId  String   @map("homework_id")
+  studentId   String   @map("student_id")
+  attemptId   String?  @map("attempt_id")
+  name        String
+  size        Int
+  contentType String   @map("content_type")
+  storageKey  String   @map("storage_key")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  homework Homework           @relation(fields: [homeworkId], references: [id])
+  student  User               @relation(fields: [studentId], references: [id])
+  attempt  SubmissionAttempt? @relation(fields: [attemptId], references: [id])
+
+  @@index([homeworkId, studentId])
+  @@index([storageKey])
+  @@map("submission_files")
+}
+
+// One hand-in. Every Submit creates a new attempt; earlier ones are never changed
+// by the student. Submission mirrors the latest attempt's status, score and feedback.
+model SubmissionAttempt {
+  id           String          @id @default(cuid())
+  submissionId String          @map("submission_id")
+  number       Int
+  content      String?
+  links        String[]
+  submittedAt  DateTime        @default(now()) @map("submitted_at")
+  late         Boolean         @default(false)
+  outcome      AttemptOutcome?
+  score        Int?
+  feedback     String?
+  reviewedAt   DateTime?       @map("reviewed_at")
+
+  submission Submission       @relation(fields: [submissionId], references: [id])
+  files      SubmissionFile[]
+
+  @@unique([submissionId, number])
+  @@map("submission_attempts")
+}
+
+// School-wide rules, edited in the Admin Panel. Always a single row (id = 1).
+model SchoolSettings {
+  id                  Int  @id @default(1)
+  // Attendance percentages below which students see a warning / an "at risk" alert.
+  attendanceWarnBelow Int  @default(80) @map("attendance_warn_below")
+  attendanceRiskBelow Int  @default(70) @map("attendance_risk_below")
+  // Default weight per mark type, used by the Teacher app when a mark is given.
+  markWeights         Json @default("{\"classwork\": 1, \"quiz\": 2, \"exam\": 3, \"homework\": 1}") @map("mark_weights")
+
+  @@map("school_settings")
+}
+
+// Per-type email choice. No row = the default for that type (see src/lib/notifications/types.ts).
+// In-app notifications are always on.
+model NotificationPreference {
+  userId String           @map("user_id")
+  type   NotificationType
+  email  Boolean
+  push   Boolean          @default(true)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@id([userId, type])
+  @@map("notification_preferences")
+}
+
+// A browser or installed app that accepted push notifications. Deleted when the
+// push service says it's gone (404/410) or when the student signs out everywhere.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
