@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          # Ends in _test: the integration tests TRUNCATE tables and refuse any other name.
+          POSTGRES_DB: courses_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # Throwaway values for this job only. Real secrets are never needed here.
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/courses_test?schema=public
+      TEST_DATABASE_URL: postgresql://ci:ci@localhost:5432/courses_test?schema=public
+      SESSION_SECRET: ci-only-not-a-real-secret-0123456789abcdef
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      # Also generates the Prisma client (postinstall).
+      - run: npm ci
+
+      # The Student Diary owns the migrations. This app has none, so CI builds the schema
+      # straight from schema.prisma, on the throwaway CI database only.
+      - name: Create the schema in the empty CI database
+        run: npx prisma db push
+
+      - name: Generate route types
+        run: npx next typegen
+
+      - run: npm run typecheck
+
+      - run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Integration tests
+        run: npm run test:integration
+
+      - run: npm run build
+
+      - name: Known vulnerabilities in production dependencies
+        run: npm audit --omit=dev
+
+      - name: Check out Student (only for sync:check)
+        id: sibling-Student
+        uses: actions/checkout@v7
+        continue-on-error: true
+        with:
+          repository: AuxioDev/courses_student
+          token: ${{ secrets.SIBLING_REPO_TOKEN || github.token }}
+          path: _siblings/courses_student
+
+      - name: Check out Teacher (only for sync:check)
+        id: sibling-Teacher
+        uses: actions/checkout@v7
+        continue-on-error: true
+        with:
+          repository: AuxioDev/courses_teacher
+          token: ${{ secrets.SIBLING_REPO_TOKEN || github.token }}
+          path: _siblings/courses_teacher
+
+      # Needs the sibling repos. The built-in token can't read other private repos: add a
+      # SIBLING_REPO_TOKEN secret (read access to them) to turn this check on.
+      - name: Shared files match the other apps
+        if: ${{ steps.sibling-Student.outcome == 'success' && steps.sibling-Teacher.outcome == 'success' }}
+        env:
+          STUDENT_REPO: ${{ github.workspace }}/_siblings/courses_student
+          TEACHER_REPO: ${{ github.workspace }}/_siblings/courses_teacher
+        run: npm run sync:check

@@ -1,0 +1,18 @@
+/* Admin accent: slate-indigo, so an admin can tell this app from the Student Diary (green)
+   and the Teacher App (teal-blue) at a glance. Only the three accent tokens change; the
+   good / warn / bad status colours stay shared. Loaded after globals.css, which is kept
+   byte-identical across the apps (npm run sync:check). Contrast is checked by
+   src/lib/__tests__/contrast.test.ts. */
+:root {
+  --accent: #3f4fa8;
+  --accent-ink: #ffffff;
+  --accent-soft: #e6e9f8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent: #9aa8f0;
+    --accent-ink: #12163a;
+    --accent-soft: #262d52;
+  }
+}

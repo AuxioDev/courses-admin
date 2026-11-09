@@ -4,6 +4,7 @@ import { lang } from "next/root-params";
 import { locales } from "@/i18n/config";
 import { getI18n } from "@/i18n";
 import "../globals.css";
+import "../role-theme.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

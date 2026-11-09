@@ -30,6 +30,10 @@ const SOURCES = [
       "src/lib/rate-limit.ts",
       "src/lib/session-token.ts",
       "src/lib/session.ts",
+      "test/db.ts",
+      "test/server-only.ts",
+      "vitest.config.ts",
+      "vitest.integration.config.ts",
     ],
   },
   {
@@ -38,6 +42,7 @@ const SOURCES = [
     files: [
       "src/components/icons.tsx",
       "src/components/privacy-notice.tsx",
+      "src/lib/csv.ts",
       "src/i18n/dictionaries/student-messages.ts",
       "src/instrumentation.ts",
       "src/lib/notifications/notify.ts",

@@ -11,7 +11,10 @@
     "db:generate": "prisma generate",
     "postinstall": "prisma generate",
     "sync:check": "node scripts/sync-check.mjs",
-    "admin:create": "tsx scripts/create-admin.ts"
+    "admin:create": "tsx scripts/create-admin.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
@@ -39,7 +42,8 @@
     "prisma": "^7.10.1",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.7"
   },
   "engines": {
     "node": "24.x"
