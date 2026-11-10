@@ -18,7 +18,16 @@ function split(css: string) {
 
 // Order matches the cascade: globals light, globals dark, role light, role dark.
 const globals = split(read("../../app/globals.css"));
-const role = split(read("../../app/role-theme.css"));
+const roleCss = read("../../app/role-theme.css");
+const role = split(roleCss);
+
+// Colours an app re-scopes for one part of the page, e.g. the Admin Panel's indigo side navigation:
+// `aside { --ink: ...; }`, with a second `aside` block inside the dark media query.
+const asideVars = (css: string) =>
+  [...css.matchAll(/(?:^|\n)[ \t]*aside[ \t]*\{([^}]*)\}/g)].map((m) =>
+    Object.fromEntries([...m[1].matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{6})\s*;/g)].map((v) => [v[1], v[2].toLowerCase()])),
+  );
+const asides = asideVars(roleCss);
 const modes = {
   light: { ...globals.light, ...role.light },
   dark: { ...globals.light, ...globals.dark, ...role.light, ...role.dark },
@@ -66,5 +75,16 @@ describe.each(["light", "dark"] as const)("palette contrast (%s)", (mode) => {
   it("status colours are different from the accent role colour only where intended", () => {
     expect(c.good).not.toBe(c.bad);
     expect(c.warn).not.toBe(c.bad);
+  });
+});
+
+describe.each(["light", "dark"] as const)("re-scoped side navigation (%s)", (mode) => {
+  const scoped = asides.length === 0 ? null : { ...modes[mode], ...asides[0], ...(mode === "dark" ? (asides[1] ?? {}) : {}) };
+
+  it.skipIf(!scoped).each([
+    ["ink", "surface-2"], ["muted", "surface-2"], ["accent", "surface-2"],
+    ["ink", "surface"], ["muted", "surface"], ["accent", "surface"],
+  ])("text --%s on --%s is at least 4.5:1", (fg, bg) => {
+    expect(contrast(scoped![fg], scoped![bg])).toBeGreaterThanOrEqual(4.5);
   });
 });

@@ -1,18 +1,111 @@
-/* Admin accent: slate-indigo, so an admin can tell this app from the Student Diary (green)
-   and the Teacher App (teal-blue) at a glance. Only the three accent tokens change; the
-   good / warn / bad status colours stay shared. Loaded after globals.css, which is kept
-   byte-identical across the apps (npm run sync:check). Contrast is checked by
-   src/lib/__tests__/contrast.test.ts. */
+/* Admin Panel: the school office. Cool timetable paper with a faint grid, a deep-indigo binder
+   for the side navigation, and status badges stamped like rubber stamps. Loaded after
+   globals.css, which is identical in all three apps (the Student and Teacher apps compare it
+   byte for byte), so everything that differs lives here. Contrast is checked by
+   src/lib/__tests__/contrast.test.ts, including the colours the side navigation re-scopes. */
 :root {
+  --bg: #eef0f6;
+  --surface: #ffffff;
+  --surface-2: #e3e6f1;
+  --ink: #161b3d;
+  --muted: #4c5478;
+  --line: #c7cce0;
   --accent: #3f4fa8;
   --accent-ink: #ffffff;
   --accent-soft: #e6e9f8;
+  --grid: #e1e5f1;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
+    --bg: #0e1122;
+    --surface: #161a33;
+    --surface-2: #1f2444;
+    --ink: #e6e9fb;
+    --muted: #a1a8d0;
+    --line: #2b3159;
     --accent: #9aa8f0;
     --accent-ink: #12163a;
     --accent-soft: #262d52;
+    --grid: #141830;
+  }
+}
+
+/* Timetable paper: a square every 3rem. */
+body {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+main h1 {
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+main h2 {
+  font-weight: 550;
+}
+body .font-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The binder: the side navigation is deep indigo. Everything inside reads the colours below,
+   so the shared components need no changes. */
+aside {
+  /* Text without a colour class inherits it from <body>, which was computed with the page's ink. */
+  color: var(--ink);
+  --surface-2: #1b2160;
+  --surface: #2a3394;
+  --ink: #f0f2ff;
+  --muted: #bcc3f0;
+  --line: #3a44a8;
+  --accent: #d6dbff;
+}
+@media (prefers-color-scheme: dark) {
+  aside {
+    --surface-2: #0a0d24;
+    --surface: #161b4a;
+    --ink: #e6e9fb;
+    --muted: #a8afd9;
+    --line: #232a66;
+    --accent: #b4c0ff;
+  }
+}
+
+/* Statuses are stamped: a ruled frame, a slight tilt, set in the data face. */
+main span.inline-flex.rounded-full.font-semibold {
+  border: 1px solid currentColor;
+  border-radius: 0.3rem;
+  outline: 1px solid color-mix(in srgb, currentColor 50%, transparent);
+  outline-offset: 1px;
+  background: transparent;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  letter-spacing: 0.01em;
+  transform: rotate(-2deg);
+}
+
+/* Once per page load the tabs slide out of the binder, one after another. */
+aside nav li {
+  animation: tab-out 0.55s cubic-bezier(0.2, 0.9, 0.25, 1.08) both;
+}
+aside nav li:nth-child(2) { animation-delay: 45ms; }
+aside nav li:nth-child(3) { animation-delay: 90ms; }
+aside nav li:nth-child(4) { animation-delay: 135ms; }
+aside nav li:nth-child(5) { animation-delay: 180ms; }
+aside nav li:nth-child(6) { animation-delay: 225ms; }
+aside nav li:nth-child(7) { animation-delay: 270ms; }
+aside nav li:nth-child(8) { animation-delay: 315ms; }
+aside nav li:nth-child(9) { animation-delay: 360ms; }
+aside nav li:nth-child(10) { animation-delay: 405ms; }
+aside nav li:nth-child(11) { animation-delay: 450ms; }
+
+@keyframes tab-out {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: none;
   }
 }
