@@ -74,8 +74,9 @@ aside {
   }
 }
 
-/* Statuses are stamped: a ruled frame, a slight tilt, set in the data face. */
-main span.inline-flex.rounded-full.font-semibold {
+/* A stamp marks an exception, so only warning, error and done states are stamped. Plain labels
+   (roles, neutral tags) keep the quiet pill from the shared components. */
+main span.inline-flex.rounded-full.font-semibold:is(.bg-warn-soft, .bg-bad-soft, .bg-good-soft) {
   border: 1px solid currentColor;
   border-radius: 0.3rem;
   outline: 1px solid color-mix(in srgb, currentColor 50%, transparent);
@@ -85,27 +86,46 @@ main span.inline-flex.rounded-full.font-semibold {
   letter-spacing: 0.01em;
   transform: rotate(-2deg);
 }
-
-/* Once per page load the tabs slide out of the binder, one after another. */
-aside nav li {
-  animation: tab-out 0.55s cubic-bezier(0.2, 0.9, 0.25, 1.08) both;
+/* Warnings and errors land on the page like a stamp pressed down. */
+main span.inline-flex.rounded-full.font-semibold:is(.bg-warn-soft, .bg-bad-soft) {
+  animation: stamp-in 0.4s var(--ease-spring) 0.2s both;
 }
-aside nav li:nth-child(2) { animation-delay: 45ms; }
-aside nav li:nth-child(3) { animation-delay: 90ms; }
-aside nav li:nth-child(4) { animation-delay: 135ms; }
-aside nav li:nth-child(5) { animation-delay: 180ms; }
-aside nav li:nth-child(6) { animation-delay: 225ms; }
-aside nav li:nth-child(7) { animation-delay: 270ms; }
-aside nav li:nth-child(8) { animation-delay: 315ms; }
-aside nav li:nth-child(9) { animation-delay: 360ms; }
-aside nav li:nth-child(10) { animation-delay: 405ms; }
-aside nav li:nth-child(11) { animation-delay: 450ms; }
 
-@keyframes tab-out {
+/* Once per page load a line scans across under the header and fades. Navigation is never hidden. */
+header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent) 35%, var(--accent) 65%, transparent);
+  transform-origin: left;
+  pointer-events: none;
+  animation: scan-line 0.9s var(--ease-out) 0.05s both;
+}
+
+@keyframes stamp-in {
   from {
-    transform: translateX(-110%);
+    opacity: 0;
+    transform: rotate(-7deg) scale(1.5);
   }
   to {
-    transform: none;
+    opacity: 1;
+    transform: rotate(-2deg) scale(1);
+  }
+}
+@keyframes scan-line {
+  0% {
+    opacity: 1;
+    transform: scaleX(0);
+  }
+  65% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
   }
 }

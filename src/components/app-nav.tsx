@@ -2,6 +2,7 @@
 
 import { Suspense, type ComponentType, type SVGProps } from "react";
 import Link from "next/link";
+import { LinkPending } from "./link-pending";
 import { usePathname } from "next/navigation";
 import { localePath, type Locale } from "@/i18n/config";
 import { BookIcon, CalendarIcon, NoteIcon, SunIcon, TaskIcon, UserIcon, UsersIcon } from "./icons";
@@ -87,6 +88,7 @@ function Bar({ locale, labels, pathname }: ViewProps) {
               >
                 <Icon strokeWidth={active ? 2.2 : 1.8} />
                 <span className="max-w-full truncate px-0.5">{labels[key]}</span>
+                <LinkPending />
               </Link>
             </li>
           );
@@ -118,6 +120,7 @@ function Side({ locale, labels, pathname }: ViewProps) {
                 >
                   <Icon width={20} height={20} strokeWidth={active ? 2.2 : 1.8} />
                   {labels[key]}
+                  <LinkPending />
                 </Link>
               </li>
             );

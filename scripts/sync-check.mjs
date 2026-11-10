@@ -15,7 +15,9 @@ const SOURCES = [
     files: [
       "prisma/schema.prisma",
       "src/app/globals.css",
+      "src/app/motion.css",
       "src/components/language-menu.tsx",
+      "src/components/link-pending.tsx",
       "src/components/password-form.tsx",
       "src/components/ui.tsx",
       "src/i18n/config.ts",

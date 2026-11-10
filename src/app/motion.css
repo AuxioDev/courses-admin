@@ -1,0 +1,117 @@
+/* Motion shared by the three apps. It is identical in all of them (the Teacher and Admin apps
+   compare it byte for byte with this copy). Each app's own gesture lives in its role-theme.css.
+
+   Rules: only transform, opacity and clip-path are animated. Nothing delays content or navigation
+   for more than half a second. Motion answers a person's action (press, focus, save, error,
+   navigate) or opens a page once. Reduced motion switches all of it off in globals.css. */
+:root {
+  --dur-fast: 120ms;
+  --dur-base: 220ms;
+  --dur-slow: 480ms;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Navigation answers a hover or a current-page change instead of jumping. */
+nav a {
+  position: relative;
+  transition:
+    color var(--dur-fast) ease,
+    background-color var(--dur-fast) ease,
+    border-color var(--dur-fast) ease;
+}
+
+/* A link that works as a card gives under the finger. */
+main a[class*="rounded"] {
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+main a[class*="rounded"]:active {
+  transform: scale(0.985);
+}
+
+/* Fields: a soft halo grows in on focus. The focus outline from globals.css stays. */
+.field {
+  transition:
+    border-color var(--dur-fast) ease,
+    box-shadow var(--dur-base) var(--ease-out);
+}
+.field:focus {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* Saved: the tick pops in. This is the confirmation after Save, Submit and Publish. */
+:is(p, div).bg-good-soft:is([role="status"], p)::before {
+  content: "";
+  display: inline-block;
+  width: 0.38em;
+  height: 0.72em;
+  margin-right: 0.7em;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translateY(-0.12em);
+  animation: tick-pop 0.42s var(--ease-spring) 0.05s both;
+}
+
+/* Refused: the message nudges once, so the eye goes to it. */
+[role="alert"].bg-bad-soft {
+  animation: nudge 0.38s var(--ease-out) both;
+}
+
+/* Navigating: a dot shows on the link that was pressed, after a short delay so quick
+   navigations do not flicker. It is driven by <LinkPending> (next/link's useLinkStatus). */
+.link-pending {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--accent);
+  opacity: 0;
+  transform: scale(0.4);
+  pointer-events: none;
+  transition:
+    opacity var(--dur-fast) ease,
+    transform var(--dur-fast) var(--ease-out);
+}
+.link-pending[data-pending] {
+  opacity: 1;
+  transform: scale(1);
+  transition-delay: 140ms;
+  animation: pending-pulse 0.9s ease-in-out 0.14s infinite;
+}
+
+@keyframes tick-pop {
+  from {
+    transform: rotate(45deg) translateY(-0.12em) scale(0);
+  }
+  60% {
+    transform: rotate(45deg) translateY(-0.12em) scale(1.3);
+  }
+  to {
+    transform: rotate(45deg) translateY(-0.12em) scale(1);
+  }
+}
+@keyframes nudge {
+  0%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  60% {
+    transform: translateX(3px);
+  }
+}
+@keyframes pending-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.7);
+  }
+}
