@@ -7,7 +7,7 @@ export const az: Dictionary = {
     appName: "Admin Paneli",
     description: "Kursları, insanları, qrupları, cədvəlləri və semestrləri qurun.",
   },
-  nav: { dashboard: "İdarə paneli", courses: "Kurslar", users: "İstifadəçilər", groups: "Qruplar", applications: "Müraciətlər", schedule: "Cədvəl", terms: "Semestrlər", reports: "Hesabatlar", settings: "Ayarlar", profile: "Profil", main: "Əsas" },
+  nav: { dashboard: "İdarə paneli", courses: "Kurslar", users: "İstifadəçilər", groups: "Qruplar", applications: "Müraciətlər", schedule: "Cədvəl", terms: "Semestrlər", reports: "Hesabatlar", settings: "Ayarlar", profile: "Profil", more: "Daha çox", main: "Əsas" },
   common: {
     save: "Yadda saxla",
     saving: "Saxlanılır…",

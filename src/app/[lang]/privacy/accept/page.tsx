@@ -7,6 +7,7 @@ import { localePath } from "@/i18n/config";
 import { PrivacyNotice } from "@/components/privacy-notice";
 import { Skeleton } from "@/components/ui";
 import { acceptPrivacy } from "@/app/actions";
+import { SubmitButton } from "@/components/submit-button";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -37,9 +38,7 @@ async function AcceptForm() {
         <input type="checkbox" name="confirmResponsible" required className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--accent)]" />
         {t.privacy.confirmResponsible}
       </label>
-      <button type="submit" className="btn w-full">
-        {t.privacy.acceptButton}
-      </button>
+      <SubmitButton className="btn w-full">{t.privacy.acceptButton}</SubmitButton>
     </form>
   );
 }

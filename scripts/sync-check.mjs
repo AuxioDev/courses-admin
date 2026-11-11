@@ -19,6 +19,8 @@ const SOURCES = [
       "src/components/language-menu.tsx",
       "src/components/link-pending.tsx",
       "src/components/password-form.tsx",
+      "src/components/submit-button.tsx",
+      "src/components/error-view.tsx",
       "src/components/ui.tsx",
       "src/i18n/config.ts",
       "src/i18n/format.ts",

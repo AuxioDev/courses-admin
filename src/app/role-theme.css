@@ -74,9 +74,9 @@ aside {
   }
 }
 
-/* A stamp marks an exception, so only warning, error and done states are stamped. Plain labels
-   (roles, neutral tags) keep the quiet pill from the shared components. */
-main span.inline-flex.rounded-full.font-semibold:is(.bg-warn-soft, .bg-bad-soft, .bg-good-soft) {
+/* A stamp marks an exception, so only warnings and errors are stamped. Routine states (done, active,
+   published) and plain labels (roles, neutral tags) keep the quiet pill from the shared components. */
+main span.inline-flex.rounded-full.font-semibold:is(.bg-warn-soft, .bg-bad-soft) {
   border: 1px solid currentColor;
   border-radius: 0.3rem;
   outline: 1px solid color-mix(in srgb, currentColor 50%, transparent);
@@ -127,5 +127,20 @@ header::after {
   100% {
     opacity: 0;
     transform: scaleX(1);
+  }
+}
+
+/* The phone menu's "More" sheet rises out of the bar once, on opening (transform and opacity only). */
+.more-sheet {
+  animation: sheet-up var(--dur-base) var(--ease-out) both;
+}
+@keyframes sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }

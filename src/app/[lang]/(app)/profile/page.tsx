@@ -7,6 +7,7 @@ import { Card, PageTitle } from "@/components/ui";
 import { logout, logoutEverywhere } from "@/app/actions";
 import { PasswordForm } from "@/components/password-form";
 import { TimezoneForm } from "./timezone-form";
+import { SubmitButton } from "@/components/submit-button";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -49,18 +50,14 @@ async function Profile() {
           <h2 className="text-sm font-semibold">{t.profile.security}</h2>
           <p className="mb-3 mt-0.5 text-xs text-muted">{t.profile.logoutEverywhereHint}</p>
           <form action={logoutEverywhere}>
-            <button type="submit" className="btn-ghost">
-              {t.profile.logoutEverywhere}
-            </button>
+            <SubmitButton className="btn-ghost">{t.profile.logoutEverywhere}</SubmitButton>
           </form>
           <Link href={localePath(locale, "/privacy")} className="mt-3 block text-sm text-accent">
             {t.privacy.link}
           </Link>
         </Card>
         <form action={logout}>
-          <button type="submit" className="btn-ghost w-full text-bad">
-            {t.profile.logout}
-          </button>
+          <SubmitButton className="btn-ghost w-full text-bad">{t.profile.logout}</SubmitButton>
         </form>
       </div>
     </>

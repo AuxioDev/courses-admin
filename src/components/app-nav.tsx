@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, type ComponentType, type ReactNode, type SVGProps } from "react";
+import { Suspense, useEffect, useRef, useState, type ComponentType, type ReactNode, type SVGProps } from "react";
 import Link from "next/link";
 import { LinkPending } from "./link-pending";
 import { usePathname } from "next/navigation";
@@ -49,11 +49,12 @@ export type NavLabels = {
   reports: string;
   settings: string;
   profile: string;
+  more: string;
   main: string;
   appName: string;
 };
 
-type Item = { path: string; key: Exclude<keyof NavLabels, "main" | "appName">; Icon: ComponentType<SVGProps<SVGSVGElement>> };
+type Item = { path: string; key: Exclude<keyof NavLabels, "main" | "appName" | "more">; Icon: ComponentType<SVGProps<SVGSVGElement>> };
 
 // Pages are added here as each build step ships them.
 const items: Item[] = [
@@ -78,22 +79,84 @@ function isActive(path: string, pathname: string | null) {
 type Props = { locale: Locale; labels: NavLabels; applicationsBadge?: ReactNode };
 type ViewProps = Props & { pathname: string | null };
 
-// The Panel is a desktop tool. On a phone the menu scrolls sideways, because the
-// full list won't fit across a narrow screen.
+// The Panel is a desktop tool, so on a phone the bar keeps the four pages used every day and puts the rest behind
+// "More". Ten tabs in a row would scroll sideways with nothing to say that more exist.
+const DAILY = ["/", "/users", "/groups", "/applications"];
+const daily = items.filter((item) => DAILY.includes(item.path));
+const rest = items.filter((item) => !DAILY.includes(item.path));
+
+function MoreIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg width={22} height={22} viewBox="0 0 24 24" fill="currentColor" aria-hidden {...props}>
+      <circle cx="5.5" cy="12" r="1.8" />
+      <circle cx="12" cy="12" r="1.8" />
+      <circle cx="18.5" cy="12" r="1.8" />
+    </svg>
+  );
+}
+
 function Bar({ locale, labels, pathname, applicationsBadge }: ViewProps) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLElement>(null);
+  const toggle = useRef<HTMLButtonElement>(null);
+  const moreActive = rest.some((item) => isActive(item.path, pathname));
+
+  // Outside taps and Escape close the sheet; Escape hands focus back to the button that opened it.
+  useEffect(() => {
+    if (!open) return;
+    const outside = (event: PointerEvent) => {
+      if (root.current && !root.current.contains(event.target as Node)) setOpen(false);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      toggle.current?.focus();
+    };
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", outside);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [open]);
+
   return (
     <nav
+      ref={root}
       aria-label={labels.main}
-      className="fixed inset-x-0 bottom-0 z-20 overflow-x-auto border-t border-line bg-surface/95 backdrop-blur md:hidden print:hidden"
+      className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur md:hidden print:hidden"
     >
+      {open && (
+        <ul id="more-menu" className="more-sheet absolute inset-x-0 bottom-full grid grid-cols-2 gap-1 border-t border-line bg-surface p-2 shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.25)]">
+          {rest.map(({ path, key, Icon }) => {
+            const active = isActive(path, pathname);
+            return (
+              <li key={path}>
+                <Link
+                  href={localePath(locale, path)}
+                  aria-current={active ? "page" : undefined}
+                  onClick={() => setOpen(false)}
+                  className={`flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium ${
+                    active ? "bg-surface-2 text-accent" : "text-ink"
+                  }`}
+                >
+                  <Icon width={20} height={20} strokeWidth={active ? 2.2 : 1.8} />
+                  {labels[key]}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
       <ul className="flex">
-        {items.map(({ path, key, Icon }) => {
+        {daily.map(({ path, key, Icon }) => {
           const active = isActive(path, pathname);
           return (
-            <li key={path} className="min-w-20 flex-1 shrink-0">
+            <li key={path} className="min-w-0 flex-1">
               <Link
                 href={localePath(locale, path)}
                 aria-current={active ? "page" : undefined}
+                onClick={() => setOpen(false)}
                 className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${
                   active ? "text-accent" : "text-muted"
                 }`}
@@ -108,6 +171,21 @@ function Bar({ locale, labels, pathname, applicationsBadge }: ViewProps) {
             </li>
           );
         })}
+        <li className="min-w-0 flex-1">
+          <button
+            ref={toggle}
+            type="button"
+            aria-expanded={open}
+            aria-controls="more-menu"
+            onClick={() => setOpen((value) => !value)}
+            className={`flex w-full flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${
+              open || moreActive ? "text-accent" : "text-muted"
+            }`}
+          >
+            <MoreIcon />
+            <span className="max-w-full truncate px-0.5">{labels.more}</span>
+          </button>
+        </li>
       </ul>
     </nav>
   );

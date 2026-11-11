@@ -9,7 +9,7 @@ export const en = {
     appName: "Admin Panel",
     description: "Set up courses, people, groups, schedules and terms.",
   },
-  nav: { dashboard: "Dashboard", courses: "Courses", users: "Users", groups: "Groups", applications: "Applications", schedule: "Schedule", terms: "Terms", reports: "Reports", settings: "Settings", profile: "Profile", main: "Main" },
+  nav: { dashboard: "Dashboard", courses: "Courses", users: "Users", groups: "Groups", applications: "Applications", schedule: "Schedule", terms: "Terms", reports: "Reports", settings: "Settings", profile: "Profile", more: "More", main: "Main" },
   common: {
     save: "Save",
     saving: "Saving…",

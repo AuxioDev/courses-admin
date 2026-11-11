@@ -5,6 +5,7 @@ import { getI18n, plural } from "@/i18n";
 import { localePath } from "@/i18n/config";
 import { Badge, Card, Empty, PageTitle } from "@/components/ui";
 import { setCourseArchived } from "@/app/actions";
+import { SubmitButton } from "@/components/submit-button";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -60,9 +61,7 @@ async function Courses({ searchParams }: Pick<PageProps<"/[lang]/courses">, "sea
                   <form action={setCourseArchived}>
                     <input type="hidden" name="courseId" value={course.id} />
                     <input type="hidden" name="archived" value={String(!course.archived)} />
-                    <button type="submit" className="btn-ghost">
-                      {course.archived ? t.courses.restore : t.courses.archive}
-                    </button>
+                    <SubmitButton className="btn-ghost">{course.archived ? t.courses.restore : t.courses.archive}</SubmitButton>
                   </form>
                 </div>
               </li>

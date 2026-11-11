@@ -63,6 +63,16 @@ describe.each(["light", "dark"] as const)("palette contrast (%s)", (mode) => {
     expect(contrast(c[fg], c[bg])).toBeGreaterThanOrEqual(4.5);
   });
 
+  // Text on a solid status fill (the unread count, a ticked box) is written in --bg, never in white: the dark
+  // palette's statuses are pale, and white on them is about 2:1.
+  it.each([["bg", "good"], ["bg", "warn"], ["bg", "bad"]])("--%s on a solid --%s fill is at least 4.5:1", (ink, fill) => {
+    expect(contrast(c[ink], c[fill])).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("white would not do on the dark status fills (why those badges use --bg)", () => {
+    if (mode === "dark") expect(contrast("#ffffff", c.bad)).toBeLessThan(4.5);
+  });
+
   it("accent stays visible as a border or focus ring (3:1) against the page", () => {
     expect(contrast(c.accent, c.bg)).toBeGreaterThanOrEqual(3);
     expect(contrast(c.accent, c.surface)).toBeGreaterThanOrEqual(3);

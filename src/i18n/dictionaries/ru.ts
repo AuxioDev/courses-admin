@@ -7,7 +7,7 @@ export const ru: Dictionary = {
     appName: "Панель администратора",
     description: "Настройка курсов, людей, групп, расписания и семестров.",
   },
-  nav: { dashboard: "Главная", courses: "Курсы", users: "Пользователи", groups: "Группы", applications: "Заявки", schedule: "Расписание", terms: "Семестры", reports: "Отчёты", settings: "Настройки", profile: "Профиль", main: "Главное меню" },
+  nav: { dashboard: "Главная", courses: "Курсы", users: "Пользователи", groups: "Группы", applications: "Заявки", schedule: "Расписание", terms: "Семестры", reports: "Отчёты", settings: "Настройки", profile: "Профиль", more: "Ещё", main: "Главное меню" },
   common: {
     save: "Сохранить",
     saving: "Сохранение…",
