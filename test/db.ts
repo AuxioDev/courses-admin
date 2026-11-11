@@ -24,6 +24,11 @@ export async function resetDatabase() {
 let counter = 0;
 const next = () => ++counter;
 
+// A midnight (UTC) date, n days from today. Fixtures are relative to now, never to a calendar date: a term that
+// "ends on 31 December" or a deadline "on the 20th" silently turns into a past one, and tests that expect a current
+// term or an on-time hand-in start failing on a day nobody changed anything.
+export const daysFromNow = (n: number) => new Date(`${new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10)}T00:00:00Z`);
+
 // A teacher, a student, and a group with one homework: the smallest world most tests need.
 export async function createWorld() {
   const n = next();
@@ -35,14 +40,14 @@ export async function createWorld() {
   });
   const course = await db.course.create({ data: { title: "Math" } });
   const term = await db.term.create({
-    data: { name: "Fall", startDate: new Date("2026-09-01"), endDate: new Date("2026-12-31") },
+    data: { name: "Fall", startDate: daysFromNow(-70), endDate: daysFromNow(60) },
   });
   const group = await db.group.create({
     data: { name: "A1", courseId: course.id, teacherId: teacher.id, termId: term.id },
   });
   await db.enrollment.create({ data: { groupId: group.id, studentId: student.id } });
   const homework = await db.homework.create({
-    data: { groupId: group.id, title: "HW 1", dueAt: new Date("2026-11-20T10:00:00Z"), maxScore: 20 },
+    data: { groupId: group.id, title: "HW 1", dueAt: new Date(Date.now() + 14 * 86_400_000), maxScore: 20 },
   });
   return { teacher, student, course, term, group, homework };
 }

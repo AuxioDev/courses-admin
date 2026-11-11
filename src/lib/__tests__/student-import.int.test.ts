@@ -1,10 +1,10 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "../db";
 import { analyzeImport, MAX_IMPORT_ROWS } from "../student-import";
-import { resetDatabase } from "../../../test/db";
+import { daysFromNow, resetDatabase } from "../../../test/db";
 
 async function group(name: string, locked = false) {
-  const term = await db.term.create({ data: { name: `T-${name}`, startDate: new Date("2026-09-01"), endDate: new Date("2026-12-31"), locked } });
+  const term = await db.term.create({ data: { name: `T-${name}`, startDate: daysFromNow(-70), endDate: daysFromNow(60), locked } });
   const teacher = await db.user.create({ data: { name: "T", email: `t-${name}-${Math.random()}@x.az`, passwordHash: "x", role: "teacher" } });
   const course = await db.course.create({ data: { title: "C" } });
   return db.group.create({ data: { name, courseId: course.id, teacherId: teacher.id, termId: term.id } });

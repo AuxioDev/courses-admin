@@ -35,7 +35,7 @@ vi.mock("@/lib/password-reset", () => ({ sendResetLink: vi.fn(async () => "sent"
 
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/passwords";
-import { resetDatabase } from "../../../test/db";
+import { daysFromNow, resetDatabase } from "../../../test/db";
 import * as actions from "../actions";
 
 const form = (fields: Record<string, string>) => {
@@ -187,7 +187,7 @@ describe("users", () => {
 
 describe("student import", () => {
   async function group(name: string) {
-    const term = await db.term.create({ data: { name: "T", startDate: new Date("2026-09-01"), endDate: new Date("2026-12-31") } });
+    const term = await db.term.create({ data: { name: "T", startDate: daysFromNow(-70), endDate: daysFromNow(60) } });
     const teacher = await user("teacher");
     const course = await db.course.create({ data: { title: "C" } });
     return db.group.create({ data: { name, courseId: course.id, teacherId: teacher.id, termId: term.id } });
@@ -264,7 +264,7 @@ describe("terms", () => {
 
 describe("final grades", () => {
   async function setup() {
-    const term = await db.term.create({ data: { name: "T", startDate: new Date("2026-09-01"), endDate: new Date("2026-12-31") } });
+    const term = await db.term.create({ data: { name: "T", startDate: daysFromNow(-70), endDate: daysFromNow(60) } });
     const teacher = await user("teacher");
     const s1 = await user("student");
     const s2 = await user("student");
@@ -322,7 +322,7 @@ describe("website fields", () => {
     const course = await db.course.findFirstOrThrow();
     expect(course).toMatchObject({ level: "Grade 9", showOnWebsite: true });
 
-    const term = await db.term.create({ data: { name: "T", startDate: new Date("2026-09-01"), endDate: new Date("2026-12-31") } });
+    const term = await db.term.create({ data: { name: "T", startDate: daysFromNow(-70), endDate: daysFromNow(60) } });
     const teacher = await user("teacher");
     const base = { name: "A", courseId: course.id, teacherId: teacher.id, termId: term.id };
     expect(await actions.saveGroup(undefined, form({ ...base, capacity: "0", monthlyPrice: "" }))).toEqual({ error: "groupCapacity" });
@@ -352,7 +352,7 @@ describe("website fields", () => {
 
 describe("applications", () => {
   async function setup(capacity: number | null = 2) {
-    const term = await db.term.create({ data: { name: "T", startDate: new Date("2026-09-01"), endDate: new Date("2026-12-31") } });
+    const term = await db.term.create({ data: { name: "T", startDate: daysFromNow(-70), endDate: daysFromNow(60) } });
     const teacher = await user("teacher");
     const course = await db.course.create({ data: { title: "C", showOnWebsite: true } });
     const group = await db.group.create({

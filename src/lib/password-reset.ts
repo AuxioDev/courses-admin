@@ -62,7 +62,7 @@ export function appUrlFor(role: Role) {
       : (["TEACHER_APP_URL", "http://localhost:3001"] as const);
   const url = process.env[name];
   if (!url && process.env.VERCEL) throw new Error(`${name} is required on Vercel`);
-  return (url ?? fallback).replace(/\/$/, "");
+  return (url || fallback).replace(/\/$/, "");
 }
 
 // Sent when an admin presses the button, so unlike sendResetLink it reports what happened.

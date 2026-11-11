@@ -62,4 +62,18 @@ describe("isDayKey", () => {
       expect(isDayKey(bad)).toBe(false);
     }
   });
+
+  it("rejects a day that does not exist, instead of letting it roll over to the next month", () => {
+    // new Date("2026-02-30") quietly becomes 2 March, so a note or a deadline would land on the wrong day.
+    for (const bad of ["2026-02-30", "2026-02-29", "2026-04-31", "2026-11-31", "2027-02-29", "2026-00-10", "2026-05-00"]) {
+      expect(isDayKey(bad), bad).toBe(false);
+    }
+  });
+
+  it("knows leap years", () => {
+    expect(isDayKey("2028-02-29")).toBe(true);
+    expect(isDayKey("2026-02-28")).toBe(true);
+    expect(isDayKey("2100-02-29")).toBe(false); // a century that is not a leap year
+    expect(isDayKey("2000-02-29")).toBe(true);
+  });
 });
