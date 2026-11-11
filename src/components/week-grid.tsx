@@ -65,12 +65,15 @@ export function WeekGrid({
               const cancelled = lesson.status === "cancelled";
               const top = (lesson.startMin / 60 - from) * ROW_REM;
               const blockHeight = Math.max(((lesson.endMin - lesson.startMin) / 60) * ROW_REM, MIN_BLOCK_REM);
-              const label = `${lesson.start}–${lesson.end}, ${lesson.course}, ${lesson.group}, ${lesson.teacher}${lesson.clash ? `. ${clashLabel}` : ""}`;
+              // A block that prints everything is named by its own content (a label that repeats it can disagree with it).
+              // Side by side, only the start time and the course are printed: the name then begins with those, and the
+              // rest (group, teacher, the whole range) follows.
+              const label = `${lesson.lanes > 1 ? lesson.start : `${lesson.start}–${lesson.end}`}, ${lesson.course}, ${lesson.group}, ${lesson.teacher}${lesson.lanes > 1 ? `, ${lesson.start}–${lesson.end}` : ""}${lesson.clash ? `. ${clashLabel}` : ""}`;
               return (
                 <Link
                   key={lesson.id}
                   href={localePath(locale, `/lessons/${lesson.id}`)}
-                  aria-label={label}
+                  aria-label={lesson.lanes > 1 ? label : undefined}
                   title={label}
                   className={`absolute overflow-hidden rounded-lg border px-1.5 py-1 text-xs leading-snug hover:border-accent ${
                     cancelled
@@ -101,6 +104,7 @@ export function WeekGrid({
                     <>
                       <p className="truncate text-muted">{lesson.group}</p>
                       <p className={`truncate ${lesson.teacherActive || cancelled ? "text-muted" : "text-bad"}`}>{lesson.teacher}</p>
+                      {lesson.clash && <span className="sr-only">{clashLabel}</span>}
                     </>
                   )}
                 </Link>
