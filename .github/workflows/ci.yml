@@ -49,9 +49,33 @@ jobs:
       # Also generates the Prisma client (postinstall).
       - run: npm ci
 
-      # The Student Diary owns the migrations. This app has none, so CI builds the schema
-      # straight from schema.prisma, on the throwaway CI database only.
-      - name: Create the schema in the empty CI database
+      - name: Check out Student (migrations and sync:check)
+        id: sibling-Student
+        uses: actions/checkout@v7
+        continue-on-error: true
+        with:
+          repository: AuxioDev/courses_student
+          token: ${{ secrets.SIBLING_REPO_TOKEN || github.token }}
+          path: _siblings/courses_student
+
+      # The Student Diary owns the migrations and this app has none. When the Diary can be checked out, build the
+      # database from its real migrations and prove this app's schema.prisma is exactly what they produce (a schema
+      # edited here without a migration fails). Without access to the Diary, fall back to pushing this schema.
+      - name: Create the schema from the Student Diary's migrations
+        if: ${{ steps.sibling-Student.outcome == 'success' }}
+        working-directory: _siblings/courses_student
+        env:
+          DATABASE_URL_UNPOOLED: ${{ env.DATABASE_URL }}
+        run: |
+          npm ci
+          npx prisma migrate deploy
+
+      - name: This app's schema matches the migrations
+        if: ${{ steps.sibling-Student.outcome == 'success' }}
+        run: npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+
+      - name: Create the schema directly (the Student Diary is not available to check out)
+        if: ${{ steps.sibling-Student.outcome != 'success' }}
         run: npx prisma db push
 
       - name: Generate route types
@@ -71,15 +95,6 @@ jobs:
 
       - name: Known vulnerabilities in production dependencies
         run: npm audit --omit=dev
-
-      - name: Check out Student (only for sync:check)
-        id: sibling-Student
-        uses: actions/checkout@v7
-        continue-on-error: true
-        with:
-          repository: AuxioDev/courses_student
-          token: ${{ secrets.SIBLING_REPO_TOKEN || github.token }}
-          path: _siblings/courses_student
 
       - name: Check out Teacher (only for sync:check)
         id: sibling-Teacher

@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "../db";
-import { isLoginBlocked, recordLoginAttempt } from "../rate-limit";
+import { isLoginBlocked, recordLoginAttempt, takeHit } from "../rate-limit";
 import { resetDatabase } from "../../../test/db";
 
 beforeEach(resetDatabase);
@@ -66,5 +66,27 @@ describe("login rate limit (real database)", () => {
     await db.loginAttempt.create({ data: { email: "old@x.az", ip: "1.1.1.1", success: false, createdAt: new Date(Date.now() - 25 * 3_600_000) } });
     await recordLoginAttempt("new@x.az", "1.1.1.1", false);
     expect(await db.loginAttempt.count({ where: { email: "old@x.az" } })).toBe(0);
+  });
+});
+
+describe("takeHit (real database)", () => {
+  it("allows up to the limit, then refuses without recording more", async () => {
+    for (let i = 0; i < 3; i++) expect(await takeHit("upload:s1", "1.1.1.1", 3)).toBe(true);
+    expect(await takeHit("upload:s1", "1.1.1.1", 3)).toBe(false);
+    expect(await db.loginAttempt.count({ where: { email: "upload:s1" } })).toBe(3);
+  });
+
+  it("counts per key, not per address, and does not touch login limits", async () => {
+    for (let i = 0; i < 3; i++) await takeHit("upload:s1", `10.0.0.${i}`, 3);
+    expect(await takeHit("upload:s1", "9.9.9.9", 3)).toBe(false);
+    expect(await takeHit("upload:s2", "1.1.1.1", 3)).toBe(true);
+    expect(await isLoginBlocked("s1@x.az", "1.1.1.1")).toBe(false);
+  });
+
+  it("forgets hits older than the window", async () => {
+    await db.loginAttempt.createMany({
+      data: Array.from({ length: 5 }, () => ({ email: "upload:s1", ip: "1.1.1.1", success: false, createdAt: new Date(Date.now() - 16 * 60_000) })),
+    });
+    expect(await takeHit("upload:s1", "1.1.1.1", 3)).toBe(true);
   });
 });

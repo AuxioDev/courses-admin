@@ -52,6 +52,17 @@ export async function isLoginBlocked(email: string, ip: string) {
   );
 }
 
+// A general "at most `limit` of this action per key in the window" counter on the same table, for things that are
+// not logins (handing out upload tokens). Returns false, recording nothing, when the key is over its limit.
+// Keys are prefixed ("upload:<id>") so they never collide with an email.
+export async function takeHit(key: string, ip: string, limit: number, windowMs = WINDOW_MS) {
+  const since = new Date(Date.now() - windowMs);
+  const used = await db.loginAttempt.count({ where: { email: key, success: false, createdAt: { gte: since } } });
+  if (used >= limit) return false;
+  await recordLoginAttempt(key, ip, false);
+  return true;
+}
+
 export async function recordLoginAttempt(email: string, ip: string, success: boolean) {
   const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
   await db.$transaction([
