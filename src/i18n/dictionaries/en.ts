@@ -349,6 +349,8 @@ export const en = {
     addStudents: "Add students ({n})",
   },
   calendar: {
+    clash: "Teacher double-booked",
+    clashSummary: "Lessons this week where the teacher is double-booked: {n}",
     timezoneHint: "Times are in the school's timezone ({timezone}).",
     newLesson: "One-off lesson",
     group: "Group",

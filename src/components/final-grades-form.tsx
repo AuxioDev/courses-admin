@@ -52,7 +52,7 @@ export function FinalGradesForm({
 
   return (
     <div className="space-y-4">
-      <div className="overflow-x-auto">
+      <div className="scroll-hint overflow-x-auto [--scroll-cover:var(--bg)]">
         <table className="w-full text-left text-sm">
           <thead className="text-muted">
             <tr>

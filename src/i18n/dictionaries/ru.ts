@@ -358,6 +358,8 @@ export const ru: Dictionary = {
     addStudents: "Добавить учеников ({n})",
   },
   calendar: {
+    clash: "Преподаватель назначен на два занятия сразу",
+    clashSummary: "Занятий на этой неделе с двойным назначением преподавателя: {n}",
     timezoneHint: "Время указано в часовом поясе школы ({timezone}).",
     newLesson: "Разовый урок",
     group: "Группа",

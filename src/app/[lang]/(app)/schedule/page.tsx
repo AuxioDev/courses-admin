@@ -7,6 +7,8 @@ import { SCHOOL_TIMEZONE } from "@/lib/school";
 import { fmt, getI18n } from "@/i18n";
 import { localePath } from "@/i18n/config";
 import { Badge, PageTitle } from "@/components/ui";
+import { WeekGrid } from "@/components/week-grid";
+import { placeDay } from "@/lib/schedule-grid";
 import { ChevronLeft, ChevronRight } from "@/components/icons";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -34,6 +36,9 @@ async function Schedule({ searchParams }: Pick<PageProps<"/[lang]/schedule">, "s
     return localePath(locale, `/schedule${query ? `?${query}` : ""}`);
   };
   const short = { weekday: undefined, month: "short" } as const;
+  // Each day laid out once: the time-axis grid (wide screens) uses the columns, both views use the double-booking flag.
+  const placed = days.map(({ day, lessons }) => ({ day, lessons: placeDay(lessons) }));
+  const clashes = new Set(placed.flatMap((d) => d.lessons.filter((l) => l.clash).map((l) => l.id)));
   const newHref = localePath(locale, `/schedule/new${groupId ? `?group=${groupId}` : ""}`);
 
   return (
@@ -91,7 +96,16 @@ async function Schedule({ searchParams }: Pick<PageProps<"/[lang]/schedule">, "s
         </Link>
       </div>
 
-      <div className="grid gap-2 lg:grid-cols-7">
+      {clashes.size > 0 && (
+        <p role="status" className="mb-3 rounded-xl bg-bad-soft px-3 py-2 text-sm font-medium text-bad">
+          {fmt(t.calendar.clashSummary, { n: clashes.size })}
+        </p>
+      )}
+
+      <WeekGrid days={placed} today={today} locale={locale} clashLabel={t.calendar.clash} />
+
+      {/* On a phone (and a tablet) the week is a list of days: a time axis needs the width. */}
+      <div className="grid gap-2 lg:hidden">
         {days.map(({ day, lessons }) => (
           <section key={day} className="min-w-0">
             <h2 className={`mb-1 text-xs font-semibold first-letter:uppercase ${day === today ? "text-accent" : "text-muted"}`}>
@@ -113,6 +127,7 @@ async function Schedule({ searchParams }: Pick<PageProps<"/[lang]/schedule">, "s
                       <p className="truncate text-sm font-semibold">{lesson.course}</p>
                       <p className="truncate text-muted">{lesson.group}</p>
                       <p className={`truncate ${lesson.teacherActive ? "text-muted" : "text-bad"}`}>{lesson.teacher}</p>
+                      {clashes.has(lesson.id) && <Badge tone="bad">{t.calendar.clash}</Badge>}
                       {lesson.status === "moved" && <Badge tone="warn">{t.lesson.status.moved}</Badge>}
                       {lesson.status === "cancelled" && <Badge tone="bad">{t.lesson.status.cancelled}</Badge>}
                       {lesson.status === "done" && <Badge tone="good">{t.lesson.status.done}</Badge>}

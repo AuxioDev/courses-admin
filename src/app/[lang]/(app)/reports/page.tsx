@@ -95,7 +95,7 @@ async function Reports({ searchParams }: Pick<PageProps<"/[lang]/reports">, "sea
       {!report || report.rows.length === 0 ? (
         <Empty>{t.reports.none}</Empty>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-line bg-surface print:overflow-visible print:border-0">
+        <div className="scroll-hint overflow-x-auto rounded-2xl border border-line bg-surface print:overflow-visible print:border-0">
           <table className="w-full text-left text-sm">
             <thead className="text-muted">
               <tr>

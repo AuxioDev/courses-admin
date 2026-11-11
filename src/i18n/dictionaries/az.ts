@@ -347,6 +347,8 @@ export const az: Dictionary = {
     addStudents: "Şagird əlavə et ({n})",
   },
   calendar: {
+    clash: "Müəllim eyni vaxta iki dərsdə",
+    clashSummary: "Bu həftə müəllimi eyni vaxta iki dərsə yazılmış dərslər: {n}",
     timezoneHint: "Vaxtlar məktəbin saat qurşağındadır ({timezone}).",
     newLesson: "Birdəfəlik dərs",
     group: "Qrup",

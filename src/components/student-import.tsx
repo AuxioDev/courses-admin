@@ -45,7 +45,7 @@ export function StudentImport({ labels, errors }: Props) {
         >
           {labels.csv.download}
         </button>
-        <div className="overflow-x-auto">
+        <div className="scroll-hint overflow-x-auto [--scroll-cover:var(--bg)]">
           <table className="w-full text-left text-sm">
             <thead className="text-muted">
               <tr>
@@ -134,7 +134,7 @@ export function StudentImport({ labels, errors }: Props) {
             </div>
           )}
           <p className="text-sm">{fmt(labels.csv.summary, { n: fresh, skipped: preview.rows.length - fresh })}</p>
-          <div className="overflow-x-auto">
+          <div className="scroll-hint overflow-x-auto [--scroll-cover:var(--bg)]">
             <table className="w-full text-left text-sm">
               <thead className="text-muted">
                 <tr>

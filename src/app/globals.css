@@ -81,6 +81,19 @@
   }
 }
 
+/* A table that scrolls sideways shows a soft edge on each side that still has more, so people know to swipe; the edge
+   fades out at the ends. Pure CSS (the "local" covers hide the "scroll" shadows at the ends). The covers must match
+   what is behind the table: --scroll-cover is the card colour unless the table sits directly on the page. */
+.scroll-hint {
+  --scroll-cover: var(--surface);
+  --scroll-edge: color-mix(in srgb, var(--ink) 22%, transparent);
+  background:
+    linear-gradient(to right, var(--scroll-cover) 30%, transparent) left center / 2rem 100% no-repeat local,
+    linear-gradient(to left, var(--scroll-cover) 30%, transparent) right center / 2rem 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, var(--scroll-edge), transparent) left center / 0.75rem 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, var(--scroll-edge), transparent) right center / 0.75rem 100% no-repeat scroll;
+}
+
 body {
   background: var(--bg);
   color: var(--ink);
