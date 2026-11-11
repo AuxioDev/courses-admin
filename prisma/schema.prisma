@@ -86,6 +86,8 @@ model User {
   active              Boolean   @default(true)
   sessionVersion      Int       @default(0) @map("session_version") // bump to sign out every device
   mustChangePassword  Boolean   @default(false) @map("must_change_password") // set with a temporary password
+  // A temporary password stops working after this time (null = no expiry, or no temporary password).
+  tempPasswordExpiresAt DateTime? @map("temp_password_expires_at")
   createdAt           DateTime  @default(now()) @map("created_at")
   // Privacy: which notice was accepted, and the deletion / retention timeline.
   privacyVersion      Int?      @map("privacy_version")
@@ -116,6 +118,7 @@ model User {
   pushSubscriptions       PushSubscription[]
   applications            Application[]            @relation("ApplicationStudent")
   applicationsHandled     Application[]            @relation("ApplicationHandler")
+  auditLogs               AdminAuditLog[]
 
   @@map("users")
 }
@@ -170,6 +173,9 @@ model Group {
   finalGrades   FinalGrade[]
   applications  Application[]
 
+  @@index([teacherId])
+  @@index([termId])
+  @@index([courseId])
   @@map("groups")
 }
 
@@ -183,6 +189,7 @@ model Enrollment {
   student User  @relation(fields: [studentId], references: [id])
 
   @@unique([groupId, studentId])
+  @@index([studentId])
   @@map("enrollments")
 }
 
@@ -217,6 +224,7 @@ model Lesson {
   notes      StudentNote[]
 
   @@index([groupId, startsAt])
+  @@index([teacherId, startsAt])
   @@map("lessons")
 }
 
@@ -231,6 +239,7 @@ model Attendance {
   student User   @relation(fields: [studentId], references: [id])
 
   @@unique([lessonId, studentId])
+  @@index([studentId])
   @@map("attendance")
 }
 
@@ -271,6 +280,7 @@ model Submission {
   attempts SubmissionAttempt[]
 
   @@unique([homeworkId, studentId])
+  @@index([studentId])
   @@map("submissions")
 }
 
@@ -296,6 +306,7 @@ model Mark {
 
   @@unique([studentId, homeworkId]) // one mark per homework; lesson marks have a null homeworkId
   @@index([studentId, groupId])
+  @@index([groupId])
   @@map("marks")
 }
 
@@ -310,6 +321,7 @@ model MarkHistory {
   mark          Mark @relation(fields: [markId], references: [id])
   changedByUser User @relation(fields: [changedBy], references: [id])
 
+  @@index([markId])
   @@map("mark_history")
 }
 
@@ -326,6 +338,8 @@ model FinalGrade {
   term    Term  @relation(fields: [termId], references: [id])
 
   @@unique([studentId, groupId, termId])
+  @@index([groupId])
+  @@index([termId])
   @@map("final_grades")
 }
 
@@ -354,6 +368,7 @@ model StudentTodo {
 
   student User @relation(fields: [studentId], references: [id])
 
+  @@index([studentId])
   @@map("student_todos")
 }
 
@@ -387,6 +402,7 @@ model AuthToken {
 
   user User @relation(fields: [userId], references: [id])
 
+  @@index([userId])
   @@map("auth_tokens")
 }
 
@@ -521,5 +537,25 @@ model Application {
   @@index([status, createdAt])
   @@index([email, groupId])
   @@index([ipHash, createdAt])
+  @@index([groupId])
+  @@index([studentId])
   @@map("applications")
+}
+
+// What an admin did to another account or to the school's data: who, what, to whom, when.
+// Written by the Admin Panel only. detail never holds a password or a token.
+model AdminAuditLog {
+  id        String   @id @default(cuid())
+  actorId   String   @map("actor_id")
+  action    String // e.g. "user.temp_password", "user.deactivate", "application.approve"
+  targetId  String?  @map("target_id")
+  detail    Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  actor User @relation(fields: [actorId], references: [id])
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@index([targetId])
+  @@map("admin_audit_log")
 }

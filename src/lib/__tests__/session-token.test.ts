@@ -36,6 +36,23 @@ describe("session token", () => {
     expect(await verifySession(other)).toBeNull();
   });
 
+  it("rejects a token issued for another app (audience)", async () => {
+    const foreign = await new SignJWT(payload)
+      .setProtectedHeader({ alg: "HS256" })
+      .setAudience("some-other-app")
+      .setExpirationTime("1h")
+      .sign(key(process.env.SESSION_SECRET!));
+    expect(await verifySession(foreign)).toBeNull();
+  });
+
+  it("rejects a token with no audience", async () => {
+    const bare = await new SignJWT(payload)
+      .setProtectedHeader({ alg: "HS256" })
+      .setExpirationTime("1h")
+      .sign(key(process.env.SESSION_SECRET!));
+    expect(await verifySession(bare)).toBeNull();
+  });
+
   it("rejects an expired token", async () => {
     const expired = await new SignJWT(payload)
       .setProtectedHeader({ alg: "HS256" })

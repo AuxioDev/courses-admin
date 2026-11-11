@@ -15,7 +15,8 @@ import { PRIVACY_VERSION } from "@/lib/privacy";
 import { hashPassword, hashToken, newPasswordSchema, verifyPassword } from "@/lib/passwords";
 import { clientIp, isLoginBlocked, recordLoginAttempt } from "@/lib/rate-limit";
 import { emailResetLinkTo, sendResetLink } from "@/lib/password-reset";
-import { tempPassword } from "@/lib/temp-password";
+import { audit } from "@/lib/audit";
+import { isTempPasswordExpired, tempPassword, tempPasswordExpiry } from "@/lib/temp-password";
 import { analyzeImport, MAX_IMPORT_CHARS, type ImportProblem } from "@/lib/student-import";
 import { addDays, dayKey, isDayKey, startOfDay } from "@/lib/dates";
 import { notify } from "@/lib/notifications/notify";
@@ -56,6 +57,10 @@ export async function login(_prev: FormState, formData: FormData): Promise<FormS
   if (!user || !valid || !user.active) {
     await recordLoginAttempt(parsed.data.email, ip, false);
     return { error: "wrongCredentials", email };
+  }
+  if (isTempPasswordExpired(user)) {
+    await recordLoginAttempt(parsed.data.email, ip, false);
+    return { error: "tempPasswordExpired", email };
   }
   await recordLoginAttempt(parsed.data.email, ip, true);
   if (user.role !== "admin") return { error: "notAdmin", email };
@@ -98,7 +103,7 @@ async function setPassword(userId: string, password: string) {
   const [user] = await db.$transaction([
     db.user.update({
       where: { id: userId },
-      data: { passwordHash, mustChangePassword: false, sessionVersion: { increment: 1 } },
+      data: { passwordHash, mustChangePassword: false, tempPasswordExpiresAt: null, sessionVersion: { increment: 1 } },
     }),
     // Any other reset link still in someone's inbox stops working.
     db.authToken.deleteMany({ where: { userId, type: "reset" } }),
@@ -186,7 +191,7 @@ const isEmailTaken = (e: unknown) => e instanceof Prisma.PrismaClientKnownReques
 // A new account always starts with a one-time password the person must replace.
 async function newAccount(account: { name: string; email: string }, role: "teacher" | "student") {
   const password = tempPassword();
-  return { password, data: { ...account, role, passwordHash: await hashPassword(password), mustChangePassword: true } };
+  return { password, data: { ...account, role, passwordHash: await hashPassword(password), mustChangePassword: true, tempPasswordExpiresAt: tempPasswordExpiry() } };
 }
 
 // A student who left has a row already, because the pair is unique. It comes back to life.
@@ -197,7 +202,7 @@ const enrolment = (groupId: string, studentId: string) => ({
 });
 
 export async function createUser(_prev: AccountState, formData: FormData): Promise<AccountState> {
-  await getCurrentAdmin();
+  const admin = await getCurrentAdmin();
   const read = readAccount(formData);
   if (read.error) return { error: read.error };
   // Admins are only created by the bootstrap script.
@@ -207,6 +212,7 @@ export async function createUser(_prev: AccountState, formData: FormData): Promi
   const { password, data } = await newAccount(read.data, role);
   try {
     const user = await db.user.create({ data });
+    await audit(admin.id, "user.create", user.id, { role });
     return { account: { id: user.id, name: user.name, email: user.email, password } };
   } catch (e) {
     if (isEmailTaken(e)) return { error: "emailTaken" };
@@ -215,12 +221,15 @@ export async function createUser(_prev: AccountState, formData: FormData): Promi
 }
 
 export async function updateUser(_prev: FormState, formData: FormData): Promise<FormState> {
-  await getCurrentAdmin();
+  const admin = await getCurrentAdmin();
   const read = readAccount(formData);
   if (read.error) return { error: read.error };
   const id = String(formData.get("userId") ?? "");
   const user = await db.user.findUnique({ where: { id }, select: { email: true, role: true } });
   if (!user) return { error: "userNotFound" };
+  // An admin's name and email are changed by that admin, never by another: an email change plus a reset
+  // link would hand the account over.
+  if (user.role === "admin" && id !== admin.id) return { error: "cannotChangeAdmin" };
 
   // The public profile is a teacher's only, and only the teacher form sends it.
   let profile = {};
@@ -240,6 +249,7 @@ export async function updateUser(_prev: FormState, formData: FormData): Promise<
     if (isEmailTaken(e)) return { error: "emailTaken" };
     throw e;
   }
+  await audit(admin.id, "user.update", id, { emailChanged: user.email !== read.data.email });
   refresh();
   return { ok: "userSaved" };
 }
@@ -262,20 +272,23 @@ async function findOtherUser(formData: FormData) {
   });
   if (!user) return { error: "userNotFound" as const };
   if (user.id === admin.id) return { error: "cannotChangeSelf" as const };
-  return { user };
+  // Admins are peers: none can reset, lock out or reactivate another.
+  if (user.role === "admin") return { error: "cannotChangeAdmin" as const };
+  return { user, admin };
 }
 
 export async function issueTempPassword(_prev: AccountState, formData: FormData): Promise<AccountState> {
   const found = await findOtherUser(formData);
   if (found.error) return { error: found.error };
-  const { user } = found;
+  const { user, admin } = found;
   if (!user.active) return { error: "userInactive" };
 
   const password = tempPassword();
   await db.user.update({
     where: { id: user.id },
-    data: { passwordHash: await hashPassword(password), mustChangePassword: true, sessionVersion: { increment: 1 } },
+    data: { passwordHash: await hashPassword(password), mustChangePassword: true, tempPasswordExpiresAt: tempPasswordExpiry(), sessionVersion: { increment: 1 } },
   });
+  await audit(admin.id, "user.temp_password", user.id);
   refresh();
   return { account: { id: user.id, name: user.name, email: user.email, password } };
 }
@@ -288,6 +301,7 @@ export async function sendUserResetLink(_prev: FormState, formData: FormData): P
   const result = await emailResetLinkTo(found.user);
   if (result === "tooMany") return { error: "tooManyLinks" };
   if (result === "notSent") return { error: "emailNotSent" };
+  await audit(found.admin.id, "user.reset_link", found.user.id);
   return { ok: "linkSent" };
 }
 
@@ -299,6 +313,7 @@ export async function deactivateUser(_prev: FormState, formData: FormData): Prom
     where: { id: found.user.id, active: true },
     data: { active: false, deactivatedAt: new Date(), sessionVersion: { increment: 1 } },
   });
+  await audit(found.admin.id, "user.deactivate", found.user.id);
   refresh();
   return { ok: "userDeactivated" };
 }
@@ -309,13 +324,14 @@ export async function reactivateUser(_prev: FormState, formData: FormData): Prom
   // Retention erases these accounts whether or not they are active.
   if (found.user.deletionApprovedAt || found.user.privateDataErasedAt) return { error: "cannotReactivate" };
   await db.user.update({ where: { id: found.user.id }, data: { active: true, deactivatedAt: null } });
+  await audit(found.admin.id, "user.reactivate", found.user.id);
   refresh();
   return { ok: "userReactivated" };
 }
 
 // Final: the next retention run erases the private data. School records stay.
 export async function approveDeletion(_prev: FormState, formData: FormData): Promise<FormState> {
-  await getCurrentAdmin();
+  const admin = await getCurrentAdmin();
   const id = String(formData.get("userId") ?? "");
   const now = new Date();
   const user = await db.user.findUnique({ where: { id }, select: { deactivatedAt: true } });
@@ -331,6 +347,7 @@ export async function approveDeletion(_prev: FormState, formData: FormData): Pro
     },
   });
   if (count === 0) return { error: "deletionNotRequested" };
+  await audit(admin.id, "user.deletion_approved", id);
   refresh();
   return { ok: "deletionApproved" };
 }
@@ -392,7 +409,7 @@ export async function applyStudentImport(_prev: ImportApplyState, formData: Form
             email: row.email,
             role: "student",
             passwordHash,
-            mustChangePassword: true,
+            mustChangePassword: true, tempPasswordExpiresAt: tempPasswordExpiry(),
             ...(row.groupId ? { enrollments: { create: { groupId: row.groupId } } } : {}),
           },
         }),
@@ -1038,6 +1055,8 @@ export async function setApplicationStatus(_prev: FormState, formData: FormData)
     data: status === "rejected" ? { status, handledAt: new Date(), handledBy: admin.id } : { status },
   });
   if (count === 0) return { error: "applicationHandled" };
+  const applicationId = String(formData.get("applicationId") ?? "");
+  await audit(admin.id, status === "rejected" ? "application.reject" : "application.contacted", applicationId);
   refresh();
   return { ok: status === "rejected" ? "applicationRejected" : "applicationContacted" };
 }
@@ -1048,6 +1067,7 @@ export type ApprovalState =
   | undefined;
 
 class ApplicationTaken extends Error {}
+class GroupIsFull extends Error {}
 
 // One step: the student account (new, or the one that already has this email) and the enrolment.
 export async function approveApplication(_prev: ApprovalState, formData: FormData): Promise<ApprovalState> {
@@ -1082,15 +1102,26 @@ export async function approveApplication(_prev: ApprovalState, formData: FormDat
         data: { status: "approved", handledAt: new Date(), handledBy: admin.id },
       });
       if (count === 0) throw new ApplicationTaken();
+      // The check above the transaction is only a quick answer. Two admins approving different applications
+      // for the last seat would both pass it, so lock the group, count again and only then enrol.
+      await tx.$queryRaw`SELECT id FROM groups WHERE id = ${group.id} FOR UPDATE`;
+      const seated = await tx.enrollment.count({ where: { groupId: group.id, status: "active", student: { active: true } } });
+      const already = existing
+        ? (await tx.enrollment.count({ where: { groupId: group.id, studentId: existing.id, status: "active" } })) > 0
+        : false;
+      if (!already && group.capacity !== null && seated >= group.capacity) throw new GroupIsFull();
       const user = existing ?? (await tx.user.create({ data: created!.data, select: { id: true, name: true, email: true } }));
       await tx.enrollment.upsert(enrolment(group.id, user.id));
       await tx.application.update({ where: { id: application.id }, data: { studentId: user.id } });
       return user;
     });
-    refresh();
+    await audit(admin.id, "application.approve", application.id, { newAccount: !existing });
+    // No refresh(): it would re-render the page with the application already approved and unmount the
+    // card that shows the new student's one-time password, which exists nowhere else (createUser does the same).
     return { approved: { studentId: student.id, name: student.name, email: student.email, password: created?.password } };
   } catch (e) {
     if (e instanceof ApplicationTaken) return { error: "applicationHandled" };
+    if (e instanceof GroupIsFull) return { error: "groupFull" };
     // Someone created an account with this email a moment ago: approving again will reuse it.
     if (isEmailTaken(e)) return { error: "emailTaken" };
     throw e;
@@ -1223,13 +1254,14 @@ export async function saveFinalGrades(_prev: FormState, formData: FormData): Pro
 
 // Locking makes the term read-only in all three apps. It can be undone.
 export async function setTermLocked(_prev: FormState, formData: FormData): Promise<FormState> {
-  await getCurrentAdmin();
+  const admin = await getCurrentAdmin();
   const locked = formData.get("locked") === "true";
   const { count } = await db.term.updateMany({
     where: { id: String(formData.get("termId") ?? "") },
     data: { locked },
   });
   if (count === 0) return { error: "termNotFound" };
+  await audit(admin.id, locked ? "term.lock" : "term.unlock", String(formData.get("termId") ?? ""));
   refresh();
   return { ok: locked ? "termClosed" : "termReopened" };
 }

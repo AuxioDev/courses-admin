@@ -7,10 +7,23 @@ beforeEach(resetDatabase);
 afterAll(() => db.$disconnect());
 
 describe("login rate limit (real database)", () => {
-  it("blocks an email after 5 failures, not before", async () => {
-    for (let i = 0; i < 4; i++) await recordLoginAttempt("a@x.az", `10.0.0.${i}`, false);
+  it("blocks an email from one address after 5 failures, not before", async () => {
+    for (let i = 0; i < 4; i++) await recordLoginAttempt("a@x.az", "10.0.0.1", false);
+    expect(await isLoginBlocked("a@x.az", "10.0.0.1")).toBe(false);
+    await recordLoginAttempt("a@x.az", "10.0.0.1", false);
+    expect(await isLoginBlocked("a@x.az", "10.0.0.1")).toBe(true);
+  });
+
+  it("does not lock the account's owner out when someone else guesses from another address", async () => {
+    for (let i = 0; i < 10; i++) await recordLoginAttempt("a@x.az", "6.6.6.6", false);
+    expect(await isLoginBlocked("a@x.az", "6.6.6.6")).toBe(true);
+    expect(await isLoginBlocked("a@x.az", "10.0.0.1")).toBe(false);
+  });
+
+  it("still stops guessing spread over many addresses", async () => {
+    for (let i = 0; i < 24; i++) await recordLoginAttempt("a@x.az", `10.0.1.${i}`, false);
     expect(await isLoginBlocked("a@x.az", "10.0.9.9")).toBe(false);
-    await recordLoginAttempt("a@x.az", "10.0.0.5", false);
+    await recordLoginAttempt("a@x.az", "10.0.1.99", false);
     expect(await isLoginBlocked("a@x.az", "10.0.9.9")).toBe(true);
   });
 
@@ -21,9 +34,9 @@ describe("login rate limit (real database)", () => {
 
   it("a successful login clears that email's failures", async () => {
     for (let i = 0; i < 5; i++) await recordLoginAttempt("a@x.az", "1.1.1.1", false);
-    expect(await isLoginBlocked("a@x.az", "2.2.2.2")).toBe(true);
+    expect(await isLoginBlocked("a@x.az", "1.1.1.1")).toBe(true);
     await recordLoginAttempt("a@x.az", "1.1.1.1", true);
-    expect(await isLoginBlocked("a@x.az", "2.2.2.2")).toBe(false);
+    expect(await isLoginBlocked("a@x.az", "1.1.1.1")).toBe(false);
   });
 
   it("ignores failures older than the 15-minute window", async () => {

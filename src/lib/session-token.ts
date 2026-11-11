@@ -1,10 +1,10 @@
 // Signing and verifying the session cookie. No Next.js imports, so proxy.ts can use it.
+// The audience and lifetimes are per app and live in ./session-cookie.
 import { SignJWT, jwtVerify } from "jose";
 import type { Role } from "@/generated/prisma/enums";
+import { SESSION_AUDIENCE, SESSION_MAX_AGE_SECONDS, SESSION_RENEW_AFTER_SECONDS } from "./session-cookie";
 
-export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
-// Sessions are renewed on use, at most once a day.
-export const SESSION_RENEW_AFTER_SECONDS = 60 * 60 * 24;
+export { SESSION_MAX_AGE_SECONDS, SESSION_RENEW_AFTER_SECONDS };
 
 // `v` must match User.sessionVersion; bumping it signs out every device.
 export type SessionPayload = { userId: string; role: Role; v: number };
@@ -20,6 +20,7 @@ function secretKey() {
 export async function encryptSession(payload: SessionPayload) {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
+    .setAudience(SESSION_AUDIENCE)
     .setIssuedAt()
     .setExpirationTime(`${SESSION_MAX_AGE_SECONDS}s`)
     .sign(secretKey());
@@ -28,7 +29,10 @@ export async function encryptSession(payload: SessionPayload) {
 export async function verifySession(token: string | undefined) {
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify<SessionPayload>(token, secretKey(), { algorithms: ["HS256"] });
+    const { payload } = await jwtVerify<SessionPayload>(token, secretKey(), {
+      algorithms: ["HS256"],
+      audience: SESSION_AUDIENCE,
+    });
     if (typeof payload.userId !== "string" || typeof payload.v !== "number") return null;
     return { userId: payload.userId, role: payload.role, v: payload.v, issuedAt: payload.iat ?? 0 };
   } catch {
@@ -36,11 +40,13 @@ export async function verifySession(token: string | undefined) {
   }
 }
 
+// Secure unless this is plainly a local http:// run: browsers drop Secure cookies on plain http, which
+// would make a local production build log everyone straight back out. A production build with no APP_URL
+// (or an https one) is Secure.
+const localHttp = (process.env.APP_URL ?? "").startsWith("http://");
 export const sessionCookieOptions = {
   httpOnly: true,
-  // Follows the real protocol: browsers drop Secure cookies on plain http, which
-  // would make a local production build log students straight back out.
-  secure: !!process.env.VERCEL || (process.env.APP_URL ?? "").startsWith("https://"),
+  secure: !!process.env.VERCEL || (process.env.NODE_ENV === "production" && !localHttp),
   sameSite: "lax" as const,
   path: "/",
   maxAge: SESSION_MAX_AGE_SECONDS,

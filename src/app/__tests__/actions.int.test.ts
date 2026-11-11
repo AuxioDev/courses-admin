@@ -34,6 +34,7 @@ vi.mock("@/lib/notifications/teacher-email", () => ({ emailTeachers: vi.fn(async
 vi.mock("@/lib/password-reset", () => ({ sendResetLink: vi.fn(async () => "sent"), emailResetLinkTo: vi.fn(async () => "sent") }));
 
 import { db } from "@/lib/db";
+import { hashPassword } from "@/lib/passwords";
 import { resetDatabase } from "../../../test/db";
 import * as actions from "../actions";
 
@@ -95,7 +96,7 @@ describe("authorization matrix", () => {
 describe("users", () => {
   it("creates teachers and students with a one-time password, never admins", async () => {
     const r = await actions.createUser(undefined, form({ name: "New", email: "NEW@x.az", role: "teacher" }));
-    expect(r).toMatchObject({ account: { email: "new@x.az", password: expect.stringMatching(/^[a-z]{4}-\d{4}-[a-z]{4}$/) } });
+    expect(r).toMatchObject({ account: { email: "new@x.az", password: expect.stringMatching(/^[a-hjkmnp-z2-9]{5}-[a-hjkmnp-z2-9]{5}$/) } });
     const created = await db.user.findUnique({ where: { email: "new@x.az" } });
     expect(created).toMatchObject({ role: "teacher", mustChangePassword: true });
     expect(created!.passwordHash).not.toContain(r!.account!.password);
@@ -116,6 +117,37 @@ describe("users", () => {
 
     expect(await actions.deactivateUser(undefined, form({ userId: state.adminId }))).toEqual({ error: "cannotChangeSelf" });
     expect(await actions.deactivateUser(undefined, form({ userId: "missing" }))).toEqual({ error: "userNotFound" });
+  });
+
+  it("refuses every action on another admin's account and changes nothing", async () => {
+    const other = await user("admin");
+    const target = form({ userId: other.id });
+    expect(await actions.deactivateUser(undefined, target)).toEqual({ error: "cannotChangeAdmin" });
+    expect(await actions.reactivateUser(undefined, target)).toEqual({ error: "cannotChangeAdmin" });
+    expect(await actions.issueTempPassword(undefined, target)).toEqual({ error: "cannotChangeAdmin" });
+    expect(await actions.sendUserResetLink(undefined, target)).toEqual({ error: "cannotChangeAdmin" });
+    expect(await actions.updateUser(undefined, form({ userId: other.id, name: "Pwned", email: "pwned@x.az" }))).toEqual({
+      error: "cannotChangeAdmin",
+    });
+    const after = await db.user.findUniqueOrThrow({ where: { id: other.id } });
+    expect(after).toMatchObject({ name: other.name, email: other.email, active: true, passwordHash: "x", sessionVersion: 0 });
+    expect(await db.adminAuditLog.count()).toBe(0);
+  });
+
+  it("a temporary password expires after seven days and the action is written to the audit log", async () => {
+    const student = await user("student");
+    const before = Date.now();
+    const result = await actions.issueTempPassword(undefined, form({ userId: student.id }));
+    expect(result?.account?.password).toMatch(/^[a-hjkmnp-z2-9]{5}-[a-hjkmnp-z2-9]{5}$/);
+    const { tempPasswordExpiresAt } = await db.user.findUniqueOrThrow({ where: { id: student.id } });
+    const days = (tempPasswordExpiresAt!.getTime() - before) / 86_400_000;
+    expect(days).toBeGreaterThan(6.99);
+    expect(days).toBeLessThan(7.01);
+
+    const log = await db.adminAuditLog.findFirstOrThrow({ where: { targetId: student.id } });
+    expect(log).toMatchObject({ actorId: state.adminId, action: "user.temp_password" });
+    // The log says who did what, never the password itself.
+    expect(JSON.stringify(log)).not.toContain(result!.account!.password);
   });
 
   it("deactivating twice keeps the first date (it starts the retention clock)", async () => {
@@ -338,7 +370,7 @@ describe("applications", () => {
     const { group } = await setup();
     const application = await apply(group.id, "aysel@t.local");
     const result = await approve(application.id);
-    expect(result?.approved).toMatchObject({ name: "Aysel Mammadova", email: "aysel@t.local", password: expect.stringMatching(/^\w+-\d{4}-\w+$/) });
+    expect(result?.approved).toMatchObject({ name: "Aysel Mammadova", email: "aysel@t.local", password: expect.stringMatching(/^[a-hjkmnp-z2-9]{5}-[a-hjkmnp-z2-9]{5}$/) });
 
     const student = await db.user.findUniqueOrThrow({ where: { email: "aysel@t.local" } });
     expect(student).toMatchObject({ role: "student", mustChangePassword: true, active: true });
@@ -389,6 +421,35 @@ describe("applications", () => {
     expect(await approve("nope")).toEqual({ error: "applicationNotFound" });
   });
 
+  it("two admins approving different applications for the last seat: exactly one gets it", async () => {
+    const { group } = await setup(1);
+    const a = await apply(group.id, "one@t.local");
+    const b = await apply(group.id, "two@t.local");
+    const results = await Promise.all([approve(a.id), approve(b.id)]);
+    expect(results.filter((r) => r?.approved)).toHaveLength(1);
+    expect(results.filter((r) => r?.error === "groupFull")).toHaveLength(1);
+    expect(await db.enrollment.count({ where: { groupId: group.id, status: "active" } })).toBe(1);
+    // The loser is rolled back whole: no account and an application that is still open.
+    expect(await db.user.count({ where: { role: "student" } })).toBe(1);
+    expect(await db.application.count({ where: { status: "approved" } })).toBe(1);
+    expect(await db.application.count({ where: { status: "new" } })).toBe(1);
+  });
+
+  it("writes approve, contact and reject to the audit log", async () => {
+    const { group } = await setup();
+    const a = await apply(group.id, "one@t.local");
+    const b = await apply(group.id, "two@t.local");
+    await approve(a.id);
+    await actions.setApplicationStatus(undefined, form({ applicationId: b.id, status: "contacted" }));
+    await actions.setApplicationStatus(undefined, form({ applicationId: b.id, status: "rejected" }));
+    const log = await db.adminAuditLog.findMany({ orderBy: { createdAt: "asc" } });
+    expect(log.map((l) => [l.action, l.targetId])).toEqual([
+      ["application.approve", a.id],
+      ["application.contacted", b.id],
+      ["application.reject", b.id],
+    ]);
+  });
+
   it("marks as contacted, rejects once, and never reopens a decided application", async () => {
     const { group } = await setup();
     const application = await apply(group.id, "a@t.local");
@@ -400,5 +461,38 @@ describe("applications", () => {
     expect(await set("contacted")).toEqual({ error: "applicationHandled" });
     expect(await approve(application.id)).toEqual({ error: "applicationHandled" });
     expect(await db.user.count({ where: { role: "student" } })).toBe(0);
+  });
+});
+
+describe("login with a temporary password", () => {
+  const PASSWORD = "k7mqe-x3tn9";
+
+  it("refuses an expired one with a clear message, counts it as a failed attempt, and accepts it before it expires", async () => {
+    const person = await user("admin", {
+      passwordHash: await hashPassword(PASSWORD),
+      mustChangePassword: true,
+      tempPasswordExpiresAt: new Date(Date.now() - 1000),
+    });
+    const attempt = () => actions.login(undefined, form({ email: person.email, password: PASSWORD }));
+
+    expect(await attempt()).toEqual({ error: "tempPasswordExpired", email: person.email });
+    expect(await db.loginAttempt.count({ where: { email: person.email, success: false } })).toBe(1);
+    expect(await db.loginAttempt.count({ where: { email: person.email, success: true } })).toBe(0);
+
+    await db.user.update({ where: { id: person.id }, data: { tempPasswordExpiresAt: new Date(Date.now() + 86_400_000) } });
+    expect(await redirectsTo(attempt())).toBe("/en/change-password");
+  });
+
+  it("never expires an ordinary password, and a wrong password still looks like any other", async () => {
+    const person = await user("admin", {
+      passwordHash: await hashPassword(PASSWORD),
+      mustChangePassword: false,
+      tempPasswordExpiresAt: new Date(Date.now() - 86_400_000),
+    });
+    expect(await redirectsTo(actions.login(undefined, form({ email: person.email, password: PASSWORD })))).toBe("/en");
+    expect(await actions.login(undefined, form({ email: person.email, password: "nope-nope-nope" }))).toEqual({
+      error: "wrongCredentials",
+      email: person.email,
+    });
   });
 });
