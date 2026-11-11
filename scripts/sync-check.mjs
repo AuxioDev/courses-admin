@@ -23,6 +23,8 @@ const SOURCES = [
       "src/i18n/config.ts",
       "src/i18n/format.ts",
       "src/lib/dates.ts",
+      "src/lib/concurrency.ts",
+      "src/lib/__tests__/concurrency.test.ts",
       "src/lib/db.ts",
       "src/lib/email.ts",
       "src/lib/grading.ts",

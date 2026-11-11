@@ -16,6 +16,7 @@ import { hashPassword, hashToken, newPasswordSchema, verifyPassword } from "@/li
 import { clientIp, isLoginBlocked, recordLoginAttempt } from "@/lib/rate-limit";
 import { emailResetLinkTo, sendResetLink } from "@/lib/password-reset";
 import { audit } from "@/lib/audit";
+import { mapConcurrent, NOTIFY_CONCURRENCY } from "@/lib/concurrency";
 import { isTempPasswordExpired, tempPassword, tempPasswordExpiry } from "@/lib/temp-password";
 import { analyzeImport, MAX_IMPORT_CHARS, type ImportProblem } from "@/lib/student-import";
 import { addDays, dayKey, isDayKey, startOfDay } from "@/lib/dates";
@@ -623,12 +624,11 @@ function notifyLessonChange(
   dedupeKey: string,
 ) {
   after(async () => {
-    for (const studentId of studentIds) {
-      try {
-        await notify(studentId, "lesson_changed", payload, { dedupeKey });
-      } catch (e) {
-        console.error(`[notify] lesson_changed failed: ${e instanceof Error ? e.name : "unknown"}`);
-      }
+    const outcomes = await mapConcurrent(studentIds, NOTIFY_CONCURRENCY, (studentId) =>
+      notify(studentId, "lesson_changed", payload, { dedupeKey }),
+    );
+    for (const o of outcomes) {
+      if (o.status === "rejected") console.error(`[notify] lesson_changed failed: ${o.reason instanceof Error ? o.reason.name : "unknown"}`);
     }
   });
 }

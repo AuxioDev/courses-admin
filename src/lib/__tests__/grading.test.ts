@@ -14,6 +14,12 @@ describe("toHundredScale", () => {
     expect(toHundredScale(0, 20)).toBe(0);
     expect(toHundredScale(7, 7)).toBe(100);
   });
+  it("rounds to one decimal, like every other mark", () => {
+    expect(toHundredScale(2, 3)).toBe(66.7);
+    expect(toHundredScale(1, 3)).toBe(33.3);
+    expect(toHundredScale(1, 8)).toBe(12.5);
+    expect(toHundredScale(199, 200)).toBe(99.5);
+  });
   it("is 0 when the maximum is 0 or negative", () => {
     expect(toHundredScale(5, 0)).toBe(0);
     expect(toHundredScale(5, -1)).toBe(0);

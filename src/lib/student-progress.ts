@@ -45,21 +45,38 @@ export async function progressByGroup(groupIds: string[]) {
   ]);
 
   const now = new Date();
+  // Index everything once, so each student costs a few lookups instead of a scan over every row.
   const statuses = new Map<string, AttendanceStatus[]>();
   for (const row of attendance) {
     const key = `${row.lesson.groupId}:${row.studentId}`;
-    statuses.set(key, [...(statuses.get(key) ?? []), row.status]);
+    const list = statuses.get(key);
+    if (list) list.push(row.status);
+    else statuses.set(key, [row.status]);
+  }
+  const marksBy = new Map<string, { value: number; weight: number }[]>();
+  for (const m of marks) {
+    const key = `${m.groupId}:${m.studentId}`;
+    const list = marksBy.get(key);
+    if (list) list.push(m);
+    else marksBy.set(key, [m]);
+  }
+  // Per group: how many homeworks are past due, and for each student how many they handed in / missed.
+  const homeworkBy = new Map<string, { dueAt: Date; handedInBy: Set<string> }[]>();
+  for (const hw of homework) {
+    const entry = { dueAt: hw.dueAt, handedInBy: new Set(hw.submissions.map((s) => s.studentId)) };
+    const list = homeworkBy.get(hw.groupId);
+    if (list) list.push(entry);
+    else homeworkBy.set(hw.groupId, [entry]);
   }
 
   const result = new Map<string, StudentProgress[]>(groupIds.map((id) => [id, []]));
   for (const { groupId, status, student } of enrollments) {
     const rate = attendanceRate(statuses.get(`${groupId}:${student.id}`) ?? []);
-    const average = weightedAverage(marks.filter((m) => m.groupId === groupId && m.studentId === student.id));
+    const average = weightedAverage(marksBy.get(`${groupId}:${student.id}`) ?? []);
     let handedIn = 0;
     let missed = 0;
-    for (const hw of homework) {
-      if (hw.groupId !== groupId) continue;
-      if (hw.submissions.some((s) => s.studentId === student.id)) handedIn++;
+    for (const hw of homeworkBy.get(groupId) ?? []) {
+      if (hw.handedInBy.has(student.id)) handedIn++;
       else if (hw.dueAt < now) missed++;
     }
     const enrolled = status === "active" && student.active;

@@ -4,8 +4,9 @@ import type { AttendanceStatus } from "@/generated/prisma/enums";
 
 // Marks are stored on a 0–100 scale. A homework scored out of another maximum is
 // converted when the mark is created (18/20 → 90).
+// Rounded to one decimal like every other mark (2/3 → 66.7), so the same work never has two different values.
 export function toHundredScale(score: number, maxScore: number) {
-  return maxScore > 0 ? (score / maxScore) * 100 : 0;
+  return maxScore > 0 ? Math.round((score / maxScore) * 1000) / 10 : 0;
 }
 
 // Σ(value × weight) / Σ(weight), or null when there's nothing to average.
