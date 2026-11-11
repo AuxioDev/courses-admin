@@ -201,6 +201,8 @@ export async function getUser(id: string) {
       role: true,
       active: true,
       mustChangePassword: true,
+      bio: true,
+      showOnWebsite: true,
       deactivatedAt: true,
       deletionRequestedAt: true,
       deletionApprovedAt: true,
@@ -239,7 +241,7 @@ export async function getCourse(id: string) {
   await getCurrentAdmin();
   return db.course.findUnique({
     where: { id },
-    select: { id: true, title: true, description: true, archived: true },
+    select: { id: true, title: true, description: true, archived: true, level: true, showOnWebsite: true },
   });
 }
 
@@ -299,7 +301,10 @@ export async function getGroup(id: string) {
       courseId: true,
       teacherId: true,
       termId: true,
-      course: { select: { title: true } },
+      capacity: true,
+      monthlyPrice: true,
+      enrollmentOpen: true,
+      course: { select: { title: true, showOnWebsite: true, archived: true } },
       term: { select: { name: true, locked: true } },
       teacher: { select: { id: true, name: true, active: true } },
       enrollments: {
@@ -634,5 +639,111 @@ export async function getTermChecklist(id: string) {
     missingGrades: rows.reduce((sum, g) => sum + g.students - g.published, 0),
     drafts: rows.reduce((sum, g) => sum + g.drafts, 0),
     lessonsWithoutAttendance: rows.reduce((sum, g) => sum + g.lessonsWithoutAttendance, 0),
+  };
+}
+
+// ---------- Applications (sent from the public website) ----------
+
+const APPLICATIONS_PER_PAGE = 50;
+const APPLICATION_STATUSES = ["new", "contacted", "approved", "rejected"] as const;
+export type ApplicationStatusFilter = (typeof APPLICATION_STATUSES)[number];
+const isApplicationStatus = (value: unknown): value is ApplicationStatusFilter =>
+  (APPLICATION_STATUSES as readonly unknown[]).includes(value);
+
+// Seats still free in a group, or null when the group has no limit.
+const seatsLeft = (capacity: number | null, enrolled: number) => (capacity === null ? null : Math.max(0, capacity - enrolled));
+const activeEnrolments = { enrollments: { where: { status: "active" as const, student: { active: true } } } };
+
+// Shown next to "Applications" in the navigation.
+export async function getNewApplicationCount() {
+  await getCurrentAdmin();
+  return db.application.count({ where: { status: "new" } });
+}
+
+export async function getApplications(filters: { status?: unknown; group?: unknown; page?: unknown }) {
+  const admin = await getCurrentAdmin();
+  const status = isApplicationStatus(filters.status) ? filters.status : null;
+  const groupId = typeof filters.group === "string" && filters.group ? filters.group : null;
+  const where: Prisma.ApplicationWhereInput = { ...(status ? { status } : {}), ...(groupId ? { groupId } : {}) };
+
+  const [total, groups] = await Promise.all([
+    db.application.count({ where }),
+    db.group.findMany({
+      where: { applications: { some: {} } },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, course: { select: { title: true } } },
+    }),
+  ]);
+  const pages = Math.max(1, Math.ceil(total / APPLICATIONS_PER_PAGE));
+  const requested = Number(filters.page);
+  const page = Number.isInteger(requested) && requested >= 1 ? Math.min(requested, pages) : 1;
+  const rows = await db.application.findMany({
+    where,
+    // New ones first, then the oldest of them: nobody should wait longest for a call.
+    orderBy: [{ status: "asc" }, { createdAt: "asc" }],
+    skip: (page - 1) * APPLICATIONS_PER_PAGE,
+    take: APPLICATIONS_PER_PAGE,
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      status: true,
+      createdAt: true,
+      group: {
+        select: { id: true, name: true, capacity: true, course: { select: { title: true } }, _count: { select: activeEnrolments } },
+      },
+    },
+  });
+  const applications = rows.map(({ group, ...row }) => ({
+    ...row,
+    group: { id: group.id, name: group.name, course: group.course.title, seatsLeft: seatsLeft(group.capacity, group._count.enrollments) },
+  }));
+  return { applications, groups, status, groupId, page, pages, total, timezone: admin.timezone };
+}
+
+export async function getApplication(id: string) {
+  const admin = await getCurrentAdmin();
+  const application = await db.application.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      isMinor: true,
+      guardianName: true,
+      guardianPhone: true,
+      note: true,
+      locale: true,
+      status: true,
+      createdAt: true,
+      handledAt: true,
+      handler: { select: { name: true } },
+      student: { select: { id: true, name: true } },
+      group: {
+        select: {
+          id: true,
+          name: true,
+          capacity: true,
+          course: { select: { title: true } },
+          term: { select: { name: true, locked: true } },
+          teacher: { select: { name: true } },
+          _count: { select: activeEnrolments },
+        },
+      },
+    },
+  });
+  if (!application) return null;
+  // Tells the admin before they press Approve whether an account will be created or reused.
+  const account = await db.user.findUnique({
+    where: { email: application.email },
+    select: { id: true, name: true, role: true, active: true },
+  });
+  const { group } = application;
+  return {
+    ...application,
+    account,
+    seatsLeft: seatsLeft(group.capacity, group._count.enrollments),
+    timezone: admin.timezone,
   };
 }

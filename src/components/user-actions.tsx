@@ -21,7 +21,7 @@ export function UserDetailsForm({
   labels,
   errors,
   ok,
-}: Text & { user: { id: string; name: string; email: string } }) {
+}: Text & { user: { id: string; name: string; email: string; role: string; bio: string | null; showOnWebsite: boolean } }) {
   const [state, action, pending] = useActionState(updateUser, undefined);
   return (
     // Not <form action>: React resets the form after an action, which would wipe what
@@ -43,6 +43,28 @@ export function UserDetailsForm({
         <span className="mb-1 block text-sm font-medium">{labels.email}</span>
         <input name="email" type="email" defaultValue={user.email} required maxLength={254} autoComplete="off" className="field" />
       </label>
+      {user.role === "teacher" && (
+        <fieldset className="space-y-3 rounded-xl border border-line p-3">
+          <legend className="px-1 text-sm font-semibold">{labels.website}</legend>
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium">{labels.bio}</span>
+            <textarea name="bio" defaultValue={user.bio ?? ""} rows={4} maxLength={2000} className="field" />
+            <span className="mt-1 block text-xs text-muted">{labels.bioHint}</span>
+          </label>
+          <label className="flex items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              name="showOnWebsite"
+              defaultChecked={user.showOnWebsite}
+              className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--accent)]"
+            />
+            <span>
+              <span className="block font-medium">{labels.showOnWebsite}</span>
+              <span className="block text-xs text-muted">{labels.showOnWebsiteHint}</span>
+            </span>
+          </label>
+        </fieldset>
+      )}
       <button type="submit" disabled={pending} className="btn">
         {pending ? labels.saving : labels.save}
       </button>

@@ -59,6 +59,14 @@ enum AuthTokenType {
   reset
 }
 
+// A request for a place in a group, sent from the public website.
+enum ApplicationStatus {
+  new
+  contacted
+  approved
+  rejected
+}
+
 enum NotificationType {
   new_homework
   deadline
@@ -86,6 +94,9 @@ model User {
   deletionRequestedAt DateTime? @map("deletion_requested_at")
   deletionApprovedAt  DateTime? @map("deletion_approved_at")
   privateDataErasedAt DateTime? @map("private_data_erased_at")
+  // Teachers only: shown on the public website when showOnWebsite is on.
+  bio                 String?
+  showOnWebsite       Boolean   @default(false) @map("show_on_website")
 
   teachingGroups          Group[]                  @relation("GroupTeacher")
   taughtLessons           Lesson[]                 @relation("LessonTeacher")
@@ -103,16 +114,21 @@ model User {
   authTokens              AuthToken[]
   notificationPreferences NotificationPreference[]
   pushSubscriptions       PushSubscription[]
+  applications            Application[]            @relation("ApplicationStudent")
+  applicationsHandled     Application[]            @relation("ApplicationHandler")
 
   @@map("users")
 }
 
 model Course {
-  id           String  @id @default(cuid())
-  title        String
-  description  String?
-  gradingScale String  @default("0-100") @map("grading_scale")
-  archived     Boolean @default(false)
+  id            String  @id @default(cuid())
+  title         String
+  description   String?
+  gradingScale  String  @default("0-100") @map("grading_scale")
+  archived      Boolean @default(false)
+  // Public website: a short label such as "Beginner" or "Grade 9", and whether the course is listed.
+  level         String?
+  showOnWebsite Boolean @default(false) @map("show_on_website")
 
   groups Group[]
 
@@ -133,11 +149,15 @@ model Term {
 }
 
 model Group {
-  id        String @id @default(cuid())
-  courseId  String @map("course_id")
-  teacherId String @map("teacher_id")
-  termId    String @map("term_id")
-  name      String
+  id             String  @id @default(cuid())
+  courseId       String  @map("course_id")
+  teacherId      String  @map("teacher_id")
+  termId         String  @map("term_id")
+  name           String
+  // Public website: seats (null = no limit), price in whole AZN per month, and whether people can apply.
+  capacity       Int?
+  monthlyPrice   Int?    @map("monthly_price")
+  enrollmentOpen Boolean @default(false) @map("enrollment_open")
 
   course        Course         @relation(fields: [courseId], references: [id])
   teacher       User           @relation("GroupTeacher", fields: [teacherId], references: [id])
@@ -148,6 +168,7 @@ model Group {
   homework      Homework[]
   marks         Mark[]
   finalGrades   FinalGrade[]
+  applications  Application[]
 
   @@map("groups")
 }
@@ -469,4 +490,36 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+// Sent from the public website. An admin approves it (which creates or reuses the student
+// account and enrols it) or rejects it. The website can write to this table only.
+model Application {
+  id                String            @id @default(cuid())
+  groupId           String            @map("group_id")
+  name              String
+  email             String
+  phone             String
+  isMinor           Boolean           @default(false) @map("is_minor")
+  guardianName      String?           @map("guardian_name")
+  guardianPhone     String?           @map("guardian_phone")
+  note              String?
+  locale            String // "az" | "en" | "ru": the language the person applied in
+  status            ApplicationStatus @default(new)
+  // Salted hash of the sender's address, used only to limit floods. Never the address itself.
+  ipHash            String            @map("ip_hash")
+  privacyAcceptedAt DateTime          @map("privacy_accepted_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  handledAt         DateTime?         @map("handled_at")
+  handledBy         String?           @map("handled_by")
+  studentId         String?           @map("student_id") // set on approval
+
+  group   Group @relation(fields: [groupId], references: [id])
+  handler User? @relation("ApplicationHandler", fields: [handledBy], references: [id])
+  student User? @relation("ApplicationStudent", fields: [studentId], references: [id])
+
+  @@index([status, createdAt])
+  @@index([email, groupId])
+  @@index([ipHash, createdAt])
+  @@map("applications")
 }

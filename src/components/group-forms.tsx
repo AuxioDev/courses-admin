@@ -24,7 +24,15 @@ export function GroupForm({
   errors,
   ok,
 }: Text & {
-  group?: { id: string; name: string; courseId: string; termId: string };
+  group?: {
+    id: string;
+    name: string;
+    courseId: string;
+    termId: string;
+    capacity: number | null;
+    monthlyPrice: number | null;
+    enrollmentOpen: boolean;
+  };
   structureLocked?: boolean;
   disabled?: boolean;
   options: Options;
@@ -78,6 +86,48 @@ export function GroupForm({
           </select>
         </label>
         {structureLocked && <p className="text-xs text-muted">{labels.structureLocked}</p>}
+        <fieldset className="space-y-3 rounded-xl border border-line p-3">
+          <legend className="px-1 text-sm font-semibold">{labels.website}</legend>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium">{labels.capacity}</span>
+              <input
+                name="capacity"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={1000}
+                defaultValue={group?.capacity ?? ""}
+                placeholder={labels.capacityHint}
+                className="field disabled:opacity-60"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium">{labels.monthlyPrice}</span>
+              <input
+                name="monthlyPrice"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={100000}
+                defaultValue={group?.monthlyPrice ?? ""}
+                className="field disabled:opacity-60"
+              />
+            </label>
+          </div>
+          <label className="flex items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              name="enrollmentOpen"
+              defaultChecked={group?.enrollmentOpen}
+              className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--accent)]"
+            />
+            <span>
+              <span className="block font-medium">{labels.enrollmentOpen}</span>
+              <span className="block text-xs text-muted">{labels.enrollmentOpenHint}</span>
+            </span>
+          </label>
+        </fieldset>
       </fieldset>
       {!disabled && (
         <button type="submit" disabled={pending} className="btn">

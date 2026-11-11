@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, type ComponentType, type SVGProps } from "react";
+import { Suspense, type ComponentType, type ReactNode, type SVGProps } from "react";
 import Link from "next/link";
 import { LinkPending } from "./link-pending";
 import { usePathname } from "next/navigation";
@@ -29,11 +29,21 @@ function SettingsIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+function InboxIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden {...props}>
+      <path d="M3 13.5 5.6 5.4A2 2 0 0 1 7.5 4h9a2 2 0 0 1 1.9 1.4L21 13.5V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <path d="M3 13.5h5l1.5 2.5h5l1.5-2.5h5" />
+    </svg>
+  );
+}
+
 export type NavLabels = {
   dashboard: string;
   courses: string;
   users: string;
   groups: string;
+  applications: string;
   schedule: string;
   terms: string;
   reports: string;
@@ -51,6 +61,7 @@ const items: Item[] = [
   { path: "/courses", key: "courses", Icon: BookIcon },
   { path: "/users", key: "users", Icon: UsersIcon },
   { path: "/groups", key: "groups", Icon: GroupsIcon },
+  { path: "/applications", key: "applications", Icon: InboxIcon },
   { path: "/schedule", key: "schedule", Icon: CalendarIcon },
   { path: "/terms", key: "terms", Icon: TaskIcon },
   { path: "/reports", key: "reports", Icon: NoteIcon },
@@ -63,12 +74,13 @@ function isActive(path: string, pathname: string | null) {
   return path === "/" ? pathname === "/" : pathname.startsWith(path);
 }
 
-type Props = { locale: Locale; labels: NavLabels };
+// applicationsBadge: the count of new applications, streamed in by the layout.
+type Props = { locale: Locale; labels: NavLabels; applicationsBadge?: ReactNode };
 type ViewProps = Props & { pathname: string | null };
 
 // The Panel is a desktop tool. On a phone the menu scrolls sideways, because the
 // full list won't fit across a narrow screen.
-function Bar({ locale, labels, pathname }: ViewProps) {
+function Bar({ locale, labels, pathname, applicationsBadge }: ViewProps) {
   return (
     <nav
       aria-label={labels.main}
@@ -86,7 +98,10 @@ function Bar({ locale, labels, pathname }: ViewProps) {
                   active ? "text-accent" : "text-muted"
                 }`}
               >
-                <Icon strokeWidth={active ? 2.2 : 1.8} />
+                <span className="relative">
+                  <Icon strokeWidth={active ? 2.2 : 1.8} />
+                  {key === "applications" && <span className="absolute -right-3 -top-1">{applicationsBadge}</span>}
+                </span>
                 <span className="max-w-full truncate px-0.5">{labels[key]}</span>
                 <LinkPending />
               </Link>
@@ -98,7 +113,7 @@ function Bar({ locale, labels, pathname }: ViewProps) {
   );
 }
 
-function Side({ locale, labels, pathname }: ViewProps) {
+function Side({ locale, labels, pathname, applicationsBadge }: ViewProps) {
   return (
     <aside className="fixed inset-y-0 left-0 z-20 hidden w-56 flex-col border-r border-line bg-surface-2 md:flex print:hidden">
       <Link href={localePath(locale, "/")} className="flex h-14 items-center gap-2 px-5 text-[15px] font-semibold tracking-tight">
@@ -120,6 +135,7 @@ function Side({ locale, labels, pathname }: ViewProps) {
                 >
                   <Icon width={20} height={20} strokeWidth={active ? 2.2 : 1.8} />
                   {labels[key]}
+                  {key === "applications" && <span className="ml-auto">{applicationsBadge}</span>}
                   <LinkPending />
                 </Link>
               </li>

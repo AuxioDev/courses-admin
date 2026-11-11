@@ -183,6 +183,19 @@ function readAccount(formData: FormData) {
 
 const isEmailTaken = (e: unknown) => e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
 
+// A new account always starts with a one-time password the person must replace.
+async function newAccount(account: { name: string; email: string }, role: "teacher" | "student") {
+  const password = tempPassword();
+  return { password, data: { ...account, role, passwordHash: await hashPassword(password), mustChangePassword: true } };
+}
+
+// A student who left has a row already, because the pair is unique. It comes back to life.
+const enrolment = (groupId: string, studentId: string) => ({
+  where: { groupId_studentId: { groupId, studentId } },
+  create: { groupId, studentId },
+  update: { status: "active" as const },
+});
+
 export async function createUser(_prev: AccountState, formData: FormData): Promise<AccountState> {
   await getCurrentAdmin();
   const read = readAccount(formData);
@@ -191,11 +204,9 @@ export async function createUser(_prev: AccountState, formData: FormData): Promi
   const role = formData.get("role");
   if (role !== "teacher" && role !== "student") return { error: "userRole" };
 
-  const password = tempPassword();
+  const { password, data } = await newAccount(read.data, role);
   try {
-    const user = await db.user.create({
-      data: { ...read.data, role, passwordHash: await hashPassword(password), mustChangePassword: true },
-    });
+    const user = await db.user.create({ data });
     return { account: { id: user.id, name: user.name, email: user.email, password } };
   } catch (e) {
     if (isEmailTaken(e)) return { error: "emailTaken" };
@@ -208,12 +219,20 @@ export async function updateUser(_prev: FormState, formData: FormData): Promise<
   const read = readAccount(formData);
   if (read.error) return { error: read.error };
   const id = String(formData.get("userId") ?? "");
-  const user = await db.user.findUnique({ where: { id }, select: { email: true } });
+  const user = await db.user.findUnique({ where: { id }, select: { email: true, role: true } });
   if (!user) return { error: "userNotFound" };
+
+  // The public profile is a teacher's only, and only the teacher form sends it.
+  let profile = {};
+  if (user.role === "teacher" && formData.has("bio")) {
+    const bio = String(formData.get("bio") ?? "").trim();
+    if (bio.length > 2000) return { error: "userBioTooLong" };
+    profile = { bio: bio || null, showOnWebsite: formData.get("showOnWebsite") === "on" };
+  }
 
   try {
     await db.$transaction([
-      db.user.update({ where: { id }, data: read.data }),
+      db.user.update({ where: { id }, data: { ...read.data, ...profile } }),
       // A link already sent to the old address must not keep working.
       ...(user.email !== read.data.email ? [db.authToken.deleteMany({ where: { userId: id, type: "reset" } })] : []),
     ]);
@@ -395,6 +414,7 @@ export async function applyStudentImport(_prev: ImportApplyState, formData: Form
 const courseSchema = z.object({
   title: z.string().trim().min(1).max(200),
   description: z.string().trim().max(5000),
+  level: z.string().trim().max(60),
 });
 
 export async function saveCourse(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -402,11 +422,18 @@ export async function saveCourse(_prev: FormState, formData: FormData): Promise<
   const parsed = courseSchema.safeParse({
     title: formData.get("title"),
     description: formData.get("description") ?? "",
+    level: formData.get("level") ?? "",
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0].path[0] === "title" ? "courseTitle" : "courseDescriptionTooLong" };
+    const field = parsed.error.issues[0].path[0];
+    return { error: field === "title" ? "courseTitle" : field === "level" ? "courseLevelTooLong" : "courseDescriptionTooLong" };
   }
-  const data = { title: parsed.data.title, description: parsed.data.description || null };
+  const data = {
+    title: parsed.data.title,
+    description: parsed.data.description || null,
+    level: parsed.data.level || null,
+    showOnWebsite: formData.get("showOnWebsite") === "on",
+  };
 
   const courseId = formData.get("courseId");
   if (typeof courseId === "string") {
@@ -446,11 +473,28 @@ const isUsableTerm = async (id: string) => !!(await db.term.findFirst({ where: {
 const isUsableTeacher = async (id: string) =>
   !!(await db.user.findFirst({ where: { id, role: "teacher", active: true }, select: { id: true } }));
 
+// An empty box means "not set": no seat limit, or no price shown.
+const optionalWhole = (max: number) =>
+  z.preprocess((v) => (typeof v === "string" && v.trim() !== "" ? Number(v) : null), z.number().int().min(1).max(max).nullable());
+const websiteSchema = z.object({ capacity: optionalWhole(1000), monthlyPrice: optionalWhole(100_000) });
+
+// What the public website shows about a group. Forms that don't carry these fields leave them alone.
+function readWebsiteFields(formData: FormData) {
+  if (!formData.has("capacity")) return { data: {} };
+  const parsed = websiteSchema.safeParse({ capacity: formData.get("capacity"), monthlyPrice: formData.get("monthlyPrice") });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].path[0] === "capacity" ? ("groupCapacity" as const) : ("groupPrice" as const) };
+  }
+  return { data: { ...parsed.data, enrollmentOpen: formData.get("enrollmentOpen") === "on" } };
+}
+
 export async function saveGroup(_prev: FormState, formData: FormData): Promise<FormState> {
   await getCurrentAdmin();
   const parsedName = groupNameSchema.safeParse(formData.get("name"));
   if (!parsedName.success) return { error: "groupName" };
   const name = parsedName.data;
+  const website = readWebsiteFields(formData);
+  if (website.error) return { error: website.error };
 
   const groupId = formData.get("groupId");
   if (typeof groupId !== "string") {
@@ -461,7 +505,7 @@ export async function saveGroup(_prev: FormState, formData: FormData): Promise<F
     if (!(await isUsableTeacher(teacherId))) return { error: "groupTeacher" };
     if (!(await isUsableTerm(termId))) return { error: "groupTerm" };
     if (await isGroupNameTaken(name, termId)) return { error: "groupNameTaken" };
-    const group = await db.group.create({ data: { name, courseId, teacherId, termId } });
+    const group = await db.group.create({ data: { name, courseId, teacherId, termId, ...website.data } });
     redirect(localePath(await getRequestLocale(), `/groups/${group.id}`));
   }
 
@@ -488,7 +532,7 @@ export async function saveGroup(_prev: FormState, formData: FormData): Promise<F
   }
   if (await isGroupNameTaken(name, termId, groupId)) return { error: "groupNameTaken" };
 
-  await db.group.update({ where: { id: groupId }, data: { name, courseId, termId } });
+  await db.group.update({ where: { id: groupId }, data: { name, courseId, termId, ...website.data } });
   refresh();
   return { ok: "groupSaved" };
 }
@@ -501,6 +545,7 @@ async function findOpenGroup(groupId: string) {
       id: true,
       name: true,
       teacherId: true,
+      capacity: true,
       course: { select: { title: true } },
       term: { select: { locked: true } },
       enrollments: { where: { status: "active", student: { active: true } }, select: { studentId: true } },
@@ -974,18 +1019,82 @@ export async function enrolStudents(_prev: FormState, formData: FormData): Promi
   });
   if (students.length !== ids.length) return { error: "studentInactive" };
 
-  // A student who left has a row already, because the pair is unique. It comes back to life.
-  await db.$transaction(
-    students.map(({ id: studentId }) =>
-      db.enrollment.upsert({
-        where: { groupId_studentId: { groupId, studentId } },
-        create: { groupId, studentId },
-        update: { status: "active" },
-      }),
-    ),
-  );
+  await db.$transaction(students.map(({ id: studentId }) => db.enrollment.upsert(enrolment(groupId, studentId))));
   refresh();
   return { ok: "studentsEnrolled" };
+}
+
+// ---------- Applications (sent from the public website) ----------
+
+const OPEN_APPLICATION = ["new", "contacted"] as const;
+
+export async function setApplicationStatus(_prev: FormState, formData: FormData): Promise<FormState> {
+  const admin = await getCurrentAdmin();
+  const status = formData.get("status");
+  if (status !== "contacted" && status !== "rejected") return { error: "applicationStatus" };
+  // Approved and rejected are final: an approval has already created an enrolment.
+  const { count } = await db.application.updateMany({
+    where: { id: String(formData.get("applicationId") ?? ""), status: { in: [...OPEN_APPLICATION] } },
+    data: status === "rejected" ? { status, handledAt: new Date(), handledBy: admin.id } : { status },
+  });
+  if (count === 0) return { error: "applicationHandled" };
+  refresh();
+  return { ok: status === "rejected" ? "applicationRejected" : "applicationContacted" };
+}
+
+// The temporary password of a newly created student travels only in this response.
+export type ApprovalState =
+  | { error?: keyof Dictionary["errors"]; approved?: { studentId: string; name: string; email: string; password?: string } }
+  | undefined;
+
+class ApplicationTaken extends Error {}
+
+// One step: the student account (new, or the one that already has this email) and the enrolment.
+export async function approveApplication(_prev: ApprovalState, formData: FormData): Promise<ApprovalState> {
+  const admin = await getCurrentAdmin();
+  const application = await db.application.findUnique({
+    where: { id: String(formData.get("applicationId") ?? "") },
+    select: { id: true, status: true, name: true, email: true, groupId: true },
+  });
+  if (!application) return { error: "applicationNotFound" };
+  if (application.status === "approved" || application.status === "rejected") return { error: "applicationHandled" };
+
+  const found = await findOpenGroup(application.groupId);
+  if (found.error) return { error: found.error };
+  const { group } = found;
+
+  const existing = await db.user.findUnique({
+    where: { email: application.email },
+    select: { id: true, name: true, email: true, role: true, active: true },
+  });
+  // A teacher's or admin's address, or a closed account: the office has to sort that out by hand.
+  if (existing && (existing.role !== "student" || !existing.active)) return { error: "applicationEmailInUse" };
+
+  const alreadyIn = !!existing && group.enrollments.some((e) => e.studentId === existing.id);
+  if (!alreadyIn && group.capacity !== null && group.enrollments.length >= group.capacity) return { error: "groupFull" };
+
+  const created = existing ? null : await newAccount({ name: application.name.slice(0, 100), email: application.email }, "student");
+  try {
+    const student = await db.$transaction(async (tx) => {
+      // Two admins pressing Approve at once: only the first one gets through.
+      const { count } = await tx.application.updateMany({
+        where: { id: application.id, status: { in: [...OPEN_APPLICATION] } },
+        data: { status: "approved", handledAt: new Date(), handledBy: admin.id },
+      });
+      if (count === 0) throw new ApplicationTaken();
+      const user = existing ?? (await tx.user.create({ data: created!.data, select: { id: true, name: true, email: true } }));
+      await tx.enrollment.upsert(enrolment(group.id, user.id));
+      await tx.application.update({ where: { id: application.id }, data: { studentId: user.id } });
+      return user;
+    });
+    refresh();
+    return { approved: { studentId: student.id, name: student.name, email: student.email, password: created?.password } };
+  } catch (e) {
+    if (e instanceof ApplicationTaken) return { error: "applicationHandled" };
+    // Someone created an account with this email a moment ago: approving again will reuse it.
+    if (isEmailTaken(e)) return { error: "emailTaken" };
+    throw e;
+  }
 }
 
 // Attendance, marks and submissions stay. The student just leaves the roster.

@@ -283,3 +283,122 @@ describe("final grades", () => {
     expect(await db.finalGrade.count({ where: { studentId: outsider.id } })).toBe(0);
   });
 });
+
+describe("website fields", () => {
+  it("saves what the public site shows about a course and a group, and rejects impossible numbers", async () => {
+    await redirectsTo(actions.saveCourse(undefined, form({ title: "Math", description: "", level: "Grade 9", showOnWebsite: "on" })));
+    const course = await db.course.findFirstOrThrow();
+    expect(course).toMatchObject({ level: "Grade 9", showOnWebsite: true });
+
+    const term = await db.term.create({ data: { name: "T", startDate: new Date("2026-09-01"), endDate: new Date("2026-12-31") } });
+    const teacher = await user("teacher");
+    const base = { name: "A", courseId: course.id, teacherId: teacher.id, termId: term.id };
+    expect(await actions.saveGroup(undefined, form({ ...base, capacity: "0", monthlyPrice: "" }))).toEqual({ error: "groupCapacity" });
+    expect(await actions.saveGroup(undefined, form({ ...base, capacity: "12", monthlyPrice: "1.5" }))).toEqual({ error: "groupPrice" });
+    await redirectsTo(actions.saveGroup(undefined, form({ ...base, capacity: "12", monthlyPrice: "120", enrollmentOpen: "on" })));
+    const group = await db.group.findFirstOrThrow();
+    expect(group).toMatchObject({ capacity: 12, monthlyPrice: 120, enrollmentOpen: true });
+
+    // A form without these fields (an older page, a locked fieldset) leaves them alone.
+    expect(await actions.saveGroup(undefined, form({ groupId: group.id, name: "B" }))).toEqual({ ok: "groupSaved" });
+    expect(await db.group.findFirstOrThrow()).toMatchObject({ name: "B", capacity: 12, enrollmentOpen: true });
+    // Empty boxes clear the limit and the price; an unticked box closes applications.
+    await actions.saveGroup(undefined, form({ groupId: group.id, name: "B", capacity: "", monthlyPrice: "" }));
+    expect(await db.group.findFirstOrThrow()).toMatchObject({ capacity: null, monthlyPrice: null, enrollmentOpen: false });
+  });
+
+  it("only a teacher gets a public profile", async () => {
+    const teacher = await user("teacher");
+    const student = await user("student");
+    const details = (u: { id: string; name: string; email: string }) => ({ userId: u.id, name: u.name, email: u.email, bio: "Teaches algebra.", showOnWebsite: "on" });
+    await actions.updateUser(undefined, form(details(teacher)));
+    await actions.updateUser(undefined, form(details(student)));
+    expect(await db.user.findUniqueOrThrow({ where: { id: teacher.id } })).toMatchObject({ bio: "Teaches algebra.", showOnWebsite: true });
+    expect(await db.user.findUniqueOrThrow({ where: { id: student.id } })).toMatchObject({ bio: null, showOnWebsite: false });
+  });
+});
+
+describe("applications", () => {
+  async function setup(capacity: number | null = 2) {
+    const term = await db.term.create({ data: { name: "T", startDate: new Date("2026-09-01"), endDate: new Date("2026-12-31") } });
+    const teacher = await user("teacher");
+    const course = await db.course.create({ data: { title: "C", showOnWebsite: true } });
+    const group = await db.group.create({
+      data: { name: "A", courseId: course.id, teacherId: teacher.id, termId: term.id, capacity, enrollmentOpen: true },
+    });
+    return { term, teacher, group };
+  }
+  const apply = (groupId: string, email: string, name = "Aysel Mammadova") =>
+    db.application.create({
+      data: { groupId, name, email, phone: "+994501234567", locale: "az", ipHash: "h", privacyAcceptedAt: new Date() },
+    });
+  const approve = (id: string) => actions.approveApplication(undefined, form({ applicationId: id }));
+
+  it("approving creates a student with a one-time password and enrols them", async () => {
+    const { group } = await setup();
+    const application = await apply(group.id, "aysel@t.local");
+    const result = await approve(application.id);
+    expect(result?.approved).toMatchObject({ name: "Aysel Mammadova", email: "aysel@t.local", password: expect.stringMatching(/^\w+-\d{4}-\w+$/) });
+
+    const student = await db.user.findUniqueOrThrow({ where: { email: "aysel@t.local" } });
+    expect(student).toMatchObject({ role: "student", mustChangePassword: true, active: true });
+    expect(await db.enrollment.findFirstOrThrow({ where: { groupId: group.id } })).toMatchObject({ studentId: student.id, status: "active" });
+    expect(await db.application.findUniqueOrThrow({ where: { id: application.id } })).toMatchObject({
+      status: "approved",
+      studentId: student.id,
+      handledBy: state.adminId,
+    });
+    // Approved is final: nothing happens twice.
+    expect(await approve(application.id)).toEqual({ error: "applicationHandled" });
+    expect(await db.user.count({ where: { role: "student" } })).toBe(1);
+  });
+
+  it("reuses the student account that already has this email, with no new password", async () => {
+    const { group } = await setup();
+    const existing = await user("student");
+    const application = await apply(group.id, existing.email);
+    const result = await approve(application.id);
+    expect(result?.approved).toMatchObject({ studentId: existing.id });
+    expect(result?.approved?.password).toBeUndefined();
+    expect(await db.user.count({ where: { role: "student" } })).toBe(1);
+    expect(await db.enrollment.count({ where: { groupId: group.id, studentId: existing.id, status: "active" } })).toBe(1);
+  });
+
+  it("refuses a teacher's or a deactivated account's email, and changes nothing", async () => {
+    const { group, teacher } = await setup();
+    const gone = await user("student", { active: false });
+    for (const email of [teacher.email, gone.email]) {
+      const application = await apply(group.id, email);
+      expect(await approve(application.id)).toEqual({ error: "applicationEmailInUse" });
+      expect(await db.application.findUniqueOrThrow({ where: { id: application.id } })).toMatchObject({ status: "new", studentId: null });
+    }
+    expect(await db.enrollment.count()).toBe(0);
+  });
+
+  it("refuses a full group and a locked term", async () => {
+    const { group, term } = await setup(1);
+    const first = await apply(group.id, "one@t.local");
+    const second = await apply(group.id, "two@t.local");
+    expect((await approve(first.id))?.approved).toBeDefined();
+    expect(await approve(second.id)).toEqual({ error: "groupFull" });
+    expect(await db.user.count({ where: { email: "two@t.local" } })).toBe(0);
+
+    await db.group.update({ where: { id: group.id }, data: { capacity: 2 } });
+    await db.term.update({ where: { id: term.id }, data: { locked: true } });
+    expect(await approve(second.id)).toEqual({ error: "termLocked" });
+    expect(await approve("nope")).toEqual({ error: "applicationNotFound" });
+  });
+
+  it("marks as contacted, rejects once, and never reopens a decided application", async () => {
+    const { group } = await setup();
+    const application = await apply(group.id, "a@t.local");
+    const set = (status: string) => actions.setApplicationStatus(undefined, form({ applicationId: application.id, status }));
+    expect(await set("approved")).toEqual({ error: "applicationStatus" });
+    expect(await set("contacted")).toEqual({ ok: "applicationContacted" });
+    expect(await set("rejected")).toEqual({ ok: "applicationRejected" });
+    expect(await db.application.findUniqueOrThrow({ where: { id: application.id } })).toMatchObject({ status: "rejected", handledBy: state.adminId });
+    expect(await set("contacted")).toEqual({ error: "applicationHandled" });
+    expect(await approve(application.id)).toEqual({ error: "applicationHandled" });
+    expect(await db.user.count({ where: { role: "student" } })).toBe(0);
+  });
+});

@@ -9,7 +9,7 @@ export function CourseForm({
   labels,
   errors,
 }: {
-  course?: { id: string; title: string; description: string | null };
+  course?: { id: string; title: string; description: string | null; level: string | null; showOnWebsite: boolean };
   labels: Dictionary["courses"];
   errors: Dictionary["errors"];
 }) {
@@ -34,6 +34,25 @@ export function CourseForm({
         <span className="mb-1 block text-sm font-medium">{labels.description}</span>
         <textarea name="description" defaultValue={course?.description ?? ""} rows={5} maxLength={5000} className="field" />
       </label>
+      <fieldset className="space-y-3 rounded-xl border border-line p-3">
+        <legend className="px-1 text-sm font-semibold">{labels.website}</legend>
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium">{labels.level}</span>
+          <input name="level" defaultValue={course?.level ?? ""} maxLength={60} placeholder={labels.levelHint} className="field" />
+        </label>
+        <label className="flex items-start gap-3 text-sm">
+          <input
+            type="checkbox"
+            name="showOnWebsite"
+            defaultChecked={course?.showOnWebsite}
+            className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--accent)]"
+          />
+          <span>
+            <span className="block font-medium">{labels.showOnWebsite}</span>
+            <span className="block text-xs text-muted">{labels.showOnWebsiteHint}</span>
+          </span>
+        </label>
+      </fieldset>
       {state?.error && (
         <p role="alert" className="rounded-xl bg-bad-soft px-3 py-2 text-sm text-bad">
           {errors[state.error]}
