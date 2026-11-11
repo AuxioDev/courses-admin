@@ -27,7 +27,7 @@ async function GroupGrades({ params }: Pick<PageProps<"/[lang]/groups/[id]/grade
 
   return (
     <div className="max-w-3xl">
-      <Link href={localePath(locale, `/groups/${group.id}`)} className="mb-3 inline-flex items-center gap-1 text-sm text-muted">
+      <Link href={localePath(locale, `/groups/${group.id}`)} className="mb-0 inline-flex min-h-11 items-center gap-1 text-sm text-muted sm:mb-3 sm:min-h-6">
         <ChevronLeft width={18} height={18} /> {group.name}
       </Link>
       <PageTitle title={t.grades.title} subtitle={`${group.course} · ${group.term.name}`} />

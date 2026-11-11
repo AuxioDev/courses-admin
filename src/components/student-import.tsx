@@ -83,7 +83,7 @@ export function StudentImport({ labels, errors }: Props) {
         <input
           type="file"
           accept=".csv,text/csv"
-          className="block text-sm"
+          className="block min-h-11 py-2 text-sm"
           onChange={async (event) => {
             const file = event.target.files?.[0];
             if (file) setText(await file.text());

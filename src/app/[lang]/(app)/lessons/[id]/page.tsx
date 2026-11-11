@@ -35,7 +35,7 @@ async function Lesson({ params }: Pick<PageProps<"/[lang]/lessons/[id]">, "param
     <div className="max-w-3xl">
       <Link
         href={localePath(locale, `/schedule?date=${lesson.day}`)}
-        className="mb-3 inline-flex items-center gap-1 text-sm text-muted"
+        className="mb-0 inline-flex min-h-11 items-center gap-1 text-sm text-muted sm:mb-3 sm:min-h-6"
       >
         <ChevronLeft width={18} height={18} /> {t.nav.schedule}
       </Link>
@@ -57,7 +57,7 @@ async function Lesson({ params }: Pick<PageProps<"/[lang]/lessons/[id]">, "param
         </p>
         {lesson.topic && <p className="mt-1 text-sm">{lesson.topic}</p>}
         <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-          <Link href={localePath(locale, `/users/${lesson.teacher.id}`)} className="text-accent">
+          <Link href={localePath(locale, `/users/${lesson.teacher.id}`)} className="inline-flex min-h-6 items-center text-accent">
             {lesson.teacher.name}
           </Link>
           {lesson.isSubstitute && <Badge tone="warn">{t.lesson.substitute}</Badge>}
@@ -70,7 +70,7 @@ async function Lesson({ params }: Pick<PageProps<"/[lang]/lessons/[id]">, "param
             marks: lesson._count.marks,
           })}
         </p>
-        <Link href={localePath(locale, `/groups/${lesson.groupId}`)} className="mt-2 inline-block text-sm text-accent">
+        <Link href={localePath(locale, `/groups/${lesson.groupId}`)} className="mt-2 inline-flex min-h-11 items-center text-sm text-accent sm:min-h-6">
           {t.lesson.openGroup}
         </Link>
       </Card>

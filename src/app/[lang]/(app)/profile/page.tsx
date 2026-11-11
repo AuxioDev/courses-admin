@@ -52,7 +52,7 @@ async function Profile() {
           <form action={logoutEverywhere}>
             <SubmitButton className="btn-ghost">{t.profile.logoutEverywhere}</SubmitButton>
           </form>
-          <Link href={localePath(locale, "/privacy")} className="mt-3 block text-sm text-accent">
+          <Link href={localePath(locale, "/privacy")} className="mt-3 inline-flex min-h-11 items-center text-sm text-accent sm:min-h-6">
             {t.privacy.link}
           </Link>
         </Card>

@@ -42,7 +42,7 @@ async function User({ params }: Pick<PageProps<"/[lang]/users/[id]">, "params">)
 
   return (
     <div className="max-w-3xl">
-      <Link href={localePath(locale, "/users")} className="mb-3 inline-flex items-center gap-1 text-sm text-muted">
+      <Link href={localePath(locale, "/users")} className="mb-0 inline-flex min-h-11 items-center gap-1 text-sm text-muted sm:mb-3 sm:min-h-6">
         <ChevronLeft width={18} height={18} /> {t.nav.users}
       </Link>
       <PageTitle

@@ -37,7 +37,7 @@ async function EditTerm({ params }: Pick<PageProps<"/[lang]/terms/[id]/edit">, "
 
   return (
     <div className="max-w-3xl">
-      <Link href={localePath(locale, "/terms")} className="mb-3 inline-flex items-center gap-1 text-sm text-muted">
+      <Link href={localePath(locale, "/terms")} className="mb-0 inline-flex min-h-11 items-center gap-1 text-sm text-muted sm:mb-3 sm:min-h-6">
         <ChevronLeft width={18} height={18} /> {t.nav.terms}
       </Link>
       <h1 className="mb-5 text-2xl font-semibold tracking-tight">{t.terms.editTitle}</h1>

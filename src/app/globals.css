@@ -62,6 +62,25 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Very large screens: nearly everything is sized in rem, so stepping the root size up scales the whole interface
+   (text, spacing and the page's maximum width) instead of leaving a small column in a sea of empty space. Common
+   4K laptops and monitors report a 1920-2560px wide window, so those get the gentle steps. */
+@media (min-width: 1920px) {
+  html {
+    font-size: 112.5%;
+  }
+}
+@media (min-width: 2560px) {
+  html {
+    font-size: 137.5%;
+  }
+}
+@media (min-width: 3840px) {
+  html {
+    font-size: 175%;
+  }
+}
+
 body {
   background: var(--bg);
   color: var(--ink);

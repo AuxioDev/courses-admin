@@ -157,7 +157,7 @@ function Bar({ locale, labels, pathname, applicationsBadge }: ViewProps) {
                 href={localePath(locale, path)}
                 aria-current={active ? "page" : undefined}
                 onClick={() => setOpen(false)}
-                className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${
+                className={`flex flex-col items-center gap-0.5 py-2 text-[0.6875rem] font-medium ${
                   active ? "text-accent" : "text-muted"
                 }`}
               >
@@ -178,7 +178,7 @@ function Bar({ locale, labels, pathname, applicationsBadge }: ViewProps) {
             aria-expanded={open}
             aria-controls="more-menu"
             onClick={() => setOpen((value) => !value)}
-            className={`flex w-full flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${
+            className={`flex w-full flex-col items-center gap-0.5 py-2 text-[0.6875rem] font-medium ${
               open || moreActive ? "text-accent" : "text-muted"
             }`}
           >
@@ -194,7 +194,7 @@ function Bar({ locale, labels, pathname, applicationsBadge }: ViewProps) {
 function Side({ locale, labels, pathname, applicationsBadge }: ViewProps) {
   return (
     <aside className="fixed inset-y-0 left-0 z-20 hidden w-56 flex-col border-r border-line bg-surface-2 md:flex print:hidden">
-      <Link href={localePath(locale, "/")} className="flex h-14 items-center gap-2 px-5 text-[15px] font-semibold tracking-tight">
+      <Link href={localePath(locale, "/")} className="flex h-14 items-center gap-2 px-5 text-[0.9375rem] font-semibold tracking-tight">
         <BookIcon className="text-accent" />
         {labels.appName}
       </Link>
