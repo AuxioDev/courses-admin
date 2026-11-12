@@ -4,6 +4,9 @@ import { Suspense, useActionState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Dictionary } from "@/i18n/dictionaries/en";
 import { login } from "@/app/actions";
+import { PasswordField } from "@/components/password-field";
+import { FormMessage } from "@/components/form-kit";
+import { SubmitButton } from "@/components/submit-button";
 
 // The page to return to after login. In its own boundary so the page stays prerendered.
 function NextField() {
@@ -11,8 +14,16 @@ function NextField() {
   return next ? <input type="hidden" name="next" value={next} /> : null;
 }
 
-export function LoginForm({ labels, errors }: { labels: Dictionary["login"]; errors: Dictionary["errors"] }) {
-  const [state, action, pending] = useActionState(login, undefined);
+export function LoginForm({
+  labels,
+  errors,
+  passwordLabels,
+}: {
+  labels: Dictionary["login"];
+  errors: Dictionary["errors"];
+  passwordLabels: Dictionary["password"];
+}) {
+  const [state, action] = useActionState(login, undefined);
   return (
     <form action={action} className="space-y-3">
       <Suspense>
@@ -20,20 +31,29 @@ export function LoginForm({ labels, errors }: { labels: Dictionary["login"]; err
       </Suspense>
       <label className="block">
         <span className="mb-1 block text-sm font-medium">{labels.email}</span>
-        <input name="email" type="email" autoComplete="email" required defaultValue={state?.email} className="field" />
+        <input
+          name="email"
+          type="email"
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          required
+          defaultValue={state?.email}
+          className="field"
+        />
       </label>
-      <label className="block">
-        <span className="mb-1 block text-sm font-medium">{labels.password}</span>
-        <input name="password" type="password" autoComplete="current-password" required className="field" />
-      </label>
-      {state?.error && (
-        <p role="alert" className="rounded-xl bg-bad-soft px-3 py-2 text-sm text-bad">
-          {errors[state.error]}
-        </p>
-      )}
-      <button type="submit" disabled={pending} className="btn w-full">
-        {pending ? labels.pending : labels.submit}
-      </button>
+      {/* The password is not kept after a refusal: the person types it again. */}
+      <PasswordField
+        name="password"
+        label={labels.password}
+        labels={{ show: passwordLabels.showPassword, hide: passwordLabels.hidePassword, capsLock: passwordLabels.capsLock }}
+        autoComplete="current-password"
+        required
+      />
+      {state?.error && <FormMessage kind="error">{errors[state.error]}</FormMessage>}
+      <SubmitButton className="btn w-full" pendingLabel={labels.pending}>
+        {labels.submit}
+      </SubmitButton>
     </form>
   );
 }

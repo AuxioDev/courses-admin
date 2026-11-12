@@ -511,6 +511,12 @@ export const az: Dictionary = {
     hint: "Ən azı 8 simvol.",
     submit: "Şifrəni saxla",
     saving: "Saxlanılır…",
+    showPassword: "Şifrəni göstər",
+    hidePassword: "Şifrəni gizlət",
+    capsLock: "Caps Lock aktivdir.",
+    matchOk: "Şifrələr eynidir.",
+    matchNo: "Şifrələr hələ eyni deyil.",
+    notYou: "Siz deyilsiniz? Çıxış",
   },
   email: {
     greeting: "Salam, {name},",

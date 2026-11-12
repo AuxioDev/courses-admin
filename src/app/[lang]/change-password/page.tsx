@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getAdminForPasswordChange } from "@/lib/auth";
 import { getI18n } from "@/i18n";
 import { localePath } from "@/i18n/config";
+import { NotYou } from "@/components/not-you";
 import { PasswordForm } from "@/components/password-form";
 import { Skeleton } from "@/components/ui";
 
@@ -30,5 +31,10 @@ export default async function ChangePasswordPage() {
 async function ForcedForm() {
   const [{ locale, t }, admin] = await Promise.all([getI18n(), getAdminForPasswordChange()]);
   if (!admin.mustChangePassword) redirect(localePath(locale, "/profile"));
-  return <PasswordForm mode="forced" labels={t.password} errors={t.errors} ok={t.ok} />;
+  return (
+    <>
+      <PasswordForm mode="forced" username={admin.email} labels={t.password} errors={t.errors} ok={t.ok} />
+      <NotYou label={t.password.notYou} />
+    </>
+  );
 }

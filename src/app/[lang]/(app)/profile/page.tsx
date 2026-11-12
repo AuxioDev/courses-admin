@@ -44,7 +44,7 @@ async function Profile() {
         </Card>
         <Card className="mb-4">
           <h2 className="mb-3 text-sm font-semibold">{t.password.changeTitle}</h2>
-          <PasswordForm mode="change" labels={t.password} errors={t.errors} ok={t.ok} />
+          <PasswordForm mode="change" username={admin.email} labels={t.password} errors={t.errors} ok={t.ok} />
         </Card>
         <Card className="mb-4">
           <h2 className="text-sm font-semibold">{t.profile.security}</h2>

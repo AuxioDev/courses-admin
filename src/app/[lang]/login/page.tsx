@@ -34,7 +34,7 @@ export default async function LoginPage() {
             <h1 className="text-2xl font-semibold tracking-tight">{t.meta.appName}</h1>
             <p className="mt-1 text-sm text-muted">{t.login.subtitle}</p>
           </div>
-          <LoginForm labels={t.login} errors={t.errors} />
+          <LoginForm labels={t.login} errors={t.errors} passwordLabels={t.password} />
           <Link href={localePath(locale, "/forgot-password")} className="mt-4 text-center text-sm text-accent">
             {t.forgot.link}
           </Link>

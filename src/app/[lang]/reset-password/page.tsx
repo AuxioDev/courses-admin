@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getI18n } from "@/i18n";
 import { localePath } from "@/i18n/config";
+import { FormMessage } from "@/components/form-kit";
 import { PasswordForm } from "@/components/password-form";
 import { Skeleton } from "@/components/ui";
 
@@ -29,9 +30,16 @@ export default async function ResetPasswordPage({ searchParams }: PageProps<"/[l
 
 // The token is only checked when the form is submitted, so a bad link can't be probed.
 async function ResetForm({ searchParams }: Pick<PageProps<"/[lang]/reset-password">, "searchParams">) {
-  const [{ t }, { token }] = await Promise.all([getI18n(), searchParams]);
+  const [{ locale, t }, { token }] = await Promise.all([getI18n(), searchParams]);
   if (typeof token !== "string" || !token) {
-    return <p className="rounded-xl bg-bad-soft px-3 py-2 text-sm text-bad">{t.errors.resetLinkInvalid}</p>;
+    return (
+      <div className="space-y-3">
+        <FormMessage kind="error">{t.errors.resetLinkInvalid}</FormMessage>
+        <Link href={localePath(locale, "/forgot-password")} className="inline-flex min-h-11 items-center text-sm text-accent hover:underline">
+          {t.forgot.title}
+        </Link>
+      </div>
+    );
   }
   return <PasswordForm mode="reset" token={token} labels={t.password} errors={t.errors} ok={t.ok} />;
 }

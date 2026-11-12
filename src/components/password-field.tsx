@@ -103,7 +103,7 @@ export function PasswordField({ name, label, labels, autoComplete, hint, error, 
         </button>
       </div>
       {/* The live region stays in the page so the hint is announced when it appears. */}
-      <p id={capsId} role="status" className="mt-1 min-h-4 text-xs text-warn">
+      <p id={capsId} role="status" className="mt-1 text-xs text-warn empty:hidden">
         {caps ? labels.capsLock : null}
       </p>
       {hint && (

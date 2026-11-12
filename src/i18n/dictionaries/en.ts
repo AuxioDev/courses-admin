@@ -514,6 +514,12 @@ export const en = {
     hint: "At least 8 characters.",
     submit: "Save password",
     saving: "Saving…",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
+    capsLock: "Caps Lock is on.",
+    matchOk: "The passwords match.",
+    matchNo: "The passwords don't match yet.",
+    notYou: "Not you? Log out",
   },
   email: {
     greeting: "Hi {name},",

@@ -532,6 +532,12 @@ export const ru: Dictionary = {
     hint: "Не короче 8 символов.",
     submit: "Сохранить пароль",
     saving: "Сохранение…",
+    showPassword: "Показать пароль",
+    hidePassword: "Скрыть пароль",
+    capsLock: "Включён Caps Lock.",
+    matchOk: "Пароли совпадают.",
+    matchNo: "Пароли пока не совпадают.",
+    notYou: "Это не вы? Выйти",
   },
   email: {
     greeting: "Здравствуйте, {name}!",
