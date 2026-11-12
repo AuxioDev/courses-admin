@@ -105,6 +105,8 @@ function Bar({ locale, labels, pathname, applicationsBadge }: ViewProps) {
   useEffect(() => {
     if (!open) return;
     const outside = (event: PointerEvent) => {
+      // The dim layer closes the sheet on click itself, so the tap does not also press what is under it.
+      if ((event.target as Element).closest?.("[data-scrim]")) return;
       if (root.current && !root.current.contains(event.target as Node)) setOpen(false);
     };
     const escape = (event: KeyboardEvent) => {
@@ -121,13 +123,20 @@ function Bar({ locale, labels, pathname, applicationsBadge }: ViewProps) {
   }, [open]);
 
   return (
-    <nav
-      ref={root}
-      aria-label={labels.main}
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur md:hidden print:hidden"
-    >
-      {open && (
-        <ul id="more-menu" className="more-sheet absolute inset-x-0 bottom-full grid grid-cols-2 gap-1 border-t border-line bg-surface p-2 shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.25)]">
+    <>
+      {/* Outside the nav: its backdrop blur would otherwise make "fixed" mean "fixed to the bar". */}
+      <div data-scrim data-open={open ? "" : undefined} onClick={() => setOpen(false)} aria-hidden className="scrim z-10 md:hidden print:hidden" />
+      <nav
+        ref={root}
+        aria-label={labels.main}
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur md:hidden print:hidden"
+      >
+        {/* Always in the page, so it can fade out as well as in; closed, it cannot be tabbed into. */}
+        <ul
+          id="more-menu"
+          data-open={open ? "" : undefined}
+          className="menu-pop menu-pop-up absolute inset-x-0 bottom-full grid grid-cols-2 gap-1 border-t border-line bg-surface p-2 shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.25)]"
+        >
           {rest.map(({ path, key, Icon }) => {
             const active = isActive(path, pathname);
             return (
@@ -147,47 +156,47 @@ function Bar({ locale, labels, pathname, applicationsBadge }: ViewProps) {
             );
           })}
         </ul>
-      )}
-      <ul className="flex">
-        {daily.map(({ path, key, Icon }) => {
-          const active = isActive(path, pathname);
-          return (
-            <li key={path} className="min-w-0 flex-1">
-              <Link
-                href={localePath(locale, path)}
-                aria-current={active ? "page" : undefined}
-                onClick={() => setOpen(false)}
-                className={`flex flex-col items-center gap-0.5 py-2 text-[0.6875rem] font-medium ${
-                  active ? "text-accent" : "text-muted"
-                }`}
-              >
-                <span className="relative">
-                  <Icon strokeWidth={active ? 2.2 : 1.8} />
-                  {key === "applications" && <span className="absolute -right-3 -top-1">{applicationsBadge}</span>}
-                </span>
-                <span className="max-w-full truncate px-0.5">{labels[key]}</span>
-                <LinkPending />
-              </Link>
-            </li>
-          );
-        })}
-        <li className="min-w-0 flex-1">
-          <button
-            ref={toggle}
-            type="button"
-            aria-expanded={open}
-            aria-controls="more-menu"
-            onClick={() => setOpen((value) => !value)}
-            className={`flex w-full flex-col items-center gap-0.5 py-2 text-[0.6875rem] font-medium ${
-              open || moreActive ? "text-accent" : "text-muted"
-            }`}
-          >
-            <MoreIcon />
-            <span className="max-w-full truncate px-0.5">{labels.more}</span>
-          </button>
-        </li>
-      </ul>
-    </nav>
+        <ul className="flex">
+          {daily.map(({ path, key, Icon }) => {
+            const active = isActive(path, pathname);
+            return (
+              <li key={path} className="min-w-0 flex-1">
+                <Link
+                  href={localePath(locale, path)}
+                  aria-current={active ? "page" : undefined}
+                  onClick={() => setOpen(false)}
+                  className={`flex flex-col items-center gap-0.5 py-2 text-[0.6875rem] font-medium ${
+                    active ? "text-accent" : "text-muted"
+                  }`}
+                >
+                  <span className="relative">
+                    <Icon strokeWidth={active ? 2.2 : 1.8} />
+                    {key === "applications" && <span className="absolute -right-3 -top-1">{applicationsBadge}</span>}
+                  </span>
+                  <span className="max-w-full truncate px-0.5">{labels[key]}</span>
+                  <LinkPending />
+                </Link>
+              </li>
+            );
+          })}
+          <li className="min-w-0 flex-1">
+            <button
+              ref={toggle}
+              type="button"
+              aria-expanded={open}
+              aria-controls="more-menu"
+              onClick={() => setOpen((value) => !value)}
+              className={`flex w-full flex-col items-center gap-0.5 py-2 text-[0.6875rem] font-medium ${
+                open || moreActive ? "text-accent" : "text-muted"
+              }`}
+            >
+              <MoreIcon />
+              <span className="max-w-full truncate px-0.5">{labels.more}</span>
+            </button>
+          </li>
+        </ul>
+      </nav>
+    </>
   );
 }
 

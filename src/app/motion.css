@@ -3,11 +3,13 @@
 
    Rules: only transform, opacity and clip-path are animated. Nothing delays content or navigation
    for more than half a second. Motion answers a person's action (press, focus, save, error,
-   navigate) or opens a page once. Reduced motion switches all of it off in globals.css. */
+   navigate) or opens a page once. Reduced motion (globals.css) removes the movement and keeps short fades. */
 :root {
   --dur-fast: 120ms;
   --dur-base: 220ms;
   --dur-slow: 480ms;
+  /* A decorative flourish that plays once when the app first loads. It never holds anything back. */
+  --dur-ambient: 900ms;
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -18,7 +20,11 @@ nav a {
   transition:
     color var(--dur-fast) ease,
     background-color var(--dur-fast) ease,
-    border-color var(--dur-fast) ease;
+    border-color var(--dur-fast) ease,
+    transform var(--dur-fast) var(--ease-out);
+}
+nav a:active {
+  transform: scale(0.97);
 }
 
 /* A link that works as a card gives under the finger. */
@@ -39,8 +45,10 @@ main a[class*="rounded"]:active {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-/* Saved: the tick pops in. This is the confirmation after Save, Submit and Publish. */
-:is(p, div).bg-good-soft:is([role="status"], p)::before {
+/* Saved: the tick pops in. This is the confirmation after Save, Submit and Publish, whether the message sits in a
+   soft box or is a plain line of green text. */
+:is(p, div).bg-good-soft:is([role="status"], p)::before,
+:is(p, span)[role="status"].text-good::before {
   content: "";
   display: inline-block;
   width: 0.38em;
@@ -49,12 +57,12 @@ main a[class*="rounded"]:active {
   border: solid currentColor;
   border-width: 0 2px 2px 0;
   transform: rotate(45deg) translateY(-0.12em);
-  animation: tick-pop 0.42s var(--ease-spring) 0.05s both;
+  animation: tick-pop var(--dur-slow) var(--ease-spring) 0.05s both;
 }
 
-/* Refused: the message nudges once, so the eye goes to it. */
-[role="alert"].bg-bad-soft {
-  animation: nudge 0.38s var(--ease-out) both;
+/* Refused: the message nudges once, so the eye goes to it (in a box, or as a plain line of red text). */
+[role="alert"]:is(.bg-bad-soft, .text-bad) {
+  animation: nudge var(--dur-slow) var(--ease-out) both;
 }
 
 /* Navigating: a dot shows on the link that was pressed, after a short delay so quick
@@ -78,7 +86,7 @@ main a[class*="rounded"]:active {
   opacity: 1;
   transform: scale(1);
   transition-delay: 140ms;
-  animation: pending-pulse 0.9s ease-in-out 0.14s infinite;
+  animation: pending-pulse var(--dur-ambient) ease-in-out 0.14s infinite;
 }
 
 @keyframes tick-pop {
@@ -149,5 +157,112 @@ main a[class*="rounded"]:active {
   }
   .confirm-dialog[open]::backdrop {
     opacity: 0;
+  }
+}
+
+/* Something that arrives on its own (a badge, a count, a banner) eases in instead of appearing. */
+.arrive {
+  animation: arrive var(--dur-base) var(--ease-spring) both;
+}
+.arrive-down {
+  animation: arrive-down var(--dur-base) var(--ease-out) both;
+}
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes arrive-down {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* A menu or sheet that stays in the page and fades in and out. While it is closed it is hidden from sight, the
+   keyboard and screen readers (visibility), so a closed menu cannot be tabbed into. data-open turns it on. */
+.menu-pop {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+  transform-origin: top right;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out),
+    visibility 0s linear var(--dur-fast);
+}
+.menu-pop[data-open] {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+/* The same, rising from the bottom bar. */
+.menu-pop-up {
+  transform: translateY(8px);
+  transform-origin: bottom;
+}
+/* A dim layer behind an open sheet. */
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.25);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--dur-base) var(--ease-out),
+    visibility 0s linear var(--dur-base);
+}
+.scrim[data-open] {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+/* A <details> fades its content in and out (not its height, which would be layout work). Browsers without
+   ::details-content simply open and close at once. */
+details::details-content {
+  opacity: 0;
+  transition:
+    opacity var(--dur-base) var(--ease-out),
+    content-visibility var(--dur-base) allow-discrete;
+}
+details[open]::details-content {
+  opacity: 1;
+}
+
+/* Changing page: the old content leaves quickly and the new content arrives a moment later (opacity only). The
+   names come from <PageTransition>. While it runs, clicks go to the page underneath, not to the transition. */
+::view-transition {
+  pointer-events: none;
+}
+/* The page around the content (header, navigation) is the same before and after: it just stays, with no fade of its own. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+::view-transition-old(.page-out) {
+  animation: var(--dur-fast) ease-in both vt-fade reverse;
+}
+::view-transition-new(.page-in) {
+  animation: var(--dur-base) ease-out var(--dur-fast) both vt-fade;
+}
+@keyframes vt-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }

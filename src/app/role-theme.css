@@ -88,7 +88,7 @@ main span.inline-flex.rounded-full.font-semibold:is(.bg-warn-soft, .bg-bad-soft)
 }
 /* Warnings and errors land on the page like a stamp pressed down. */
 main span.inline-flex.rounded-full.font-semibold:is(.bg-warn-soft, .bg-bad-soft) {
-  animation: stamp-in 0.4s var(--ease-spring) 0.2s both;
+  animation: stamp-in var(--dur-base) var(--ease-spring) 0.2s both;
 }
 
 /* Once per page load a line scans across under the header and fades. Navigation is never hidden. */
@@ -102,7 +102,7 @@ header::after {
   background: linear-gradient(90deg, transparent, var(--accent) 35%, var(--accent) 65%, transparent);
   transform-origin: left;
   pointer-events: none;
-  animation: scan-line 0.9s var(--ease-out) 0.05s both;
+  animation: scan-line var(--dur-ambient) var(--ease-out) 0.05s both;
 }
 
 @keyframes stamp-in {
@@ -130,17 +130,3 @@ header::after {
   }
 }
 
-/* The phone menu's "More" sheet rises out of the bar once, on opening (transform and opacity only). */
-.more-sheet {
-  animation: sheet-up var(--dur-base) var(--ease-out) both;
-}
-@keyframes sheet-up {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}

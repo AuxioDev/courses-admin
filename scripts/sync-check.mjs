@@ -20,6 +20,7 @@ const SOURCES = [
       "src/components/link-pending.tsx",
       "src/components/password-form.tsx",
       "src/components/not-you.tsx",
+      "src/components/page-transition.tsx",
       "src/app/[lang]/login/login-form.tsx",
       "src/app/[lang]/forgot-password/forgot-form.tsx",
       "src/app/[lang]/reset-password/page.tsx",

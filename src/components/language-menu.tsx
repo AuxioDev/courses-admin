@@ -51,32 +51,34 @@ function Menu({ locale, label, saveToAccount, path }: Props & { path: string }) 
         {locale.toUpperCase()}
         <ChevronRight width={14} height={14} className={`transition-transform ${open ? "-rotate-90" : "rotate-90"}`} />
       </button>
-      {open && (
-        <ul className="absolute right-0 top-full z-30 mt-1 w-20 overflow-hidden rounded-lg border border-line bg-surface shadow-lg">
-          {ORDER.map((l) => (
-            <li key={l}>
-              {saveToAccount ? (
-                <form action={updateLocale}>
-                  <input type="hidden" name="locale" value={l} />
-                  <input type="hidden" name="path" value={path} />
-                  <button type="submit" lang={l} aria-current={l === locale ? "true" : undefined} className={`${item} ${tone(l)}`}>
-                    {l.toUpperCase()}
-                  </button>
-                </form>
-              ) : (
-                <Link
-                  href={localePath(l, path)}
-                  hrefLang={l}
-                  aria-current={l === locale ? "true" : undefined}
-                  className={`${item} ${tone(l)}`}
-                >
+      {/* Always in the page, so it can fade out as well as in; closed, it is invisible and cannot be tabbed into. */}
+      <ul
+        data-open={open ? "" : undefined}
+        className="menu-pop absolute right-0 top-full z-30 mt-1 w-20 overflow-hidden rounded-lg border border-line bg-surface shadow-lg"
+      >
+        {ORDER.map((l) => (
+          <li key={l}>
+            {saveToAccount ? (
+              <form action={updateLocale}>
+                <input type="hidden" name="locale" value={l} />
+                <input type="hidden" name="path" value={path} />
+                <button type="submit" lang={l} aria-current={l === locale ? "true" : undefined} className={`${item} ${tone(l)}`}>
                   {l.toUpperCase()}
-                </Link>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+                </button>
+              </form>
+            ) : (
+              <Link
+                href={localePath(l, path)}
+                hrefLang={l}
+                aria-current={l === locale ? "true" : undefined}
+                className={`${item} ${tone(l)}`}
+              >
+                {l.toUpperCase()}
+              </Link>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

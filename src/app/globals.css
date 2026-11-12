@@ -106,11 +106,37 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* No movement and no flourishes... */
   *,
   *::before,
   *::after {
     animation: none !important;
     transition: none !important;
+  }
+  /* ...but a question, a menu or an opening section still arrives as a short fade, so a change is not a blink. */
+  .confirm-dialog,
+  .confirm-dialog::backdrop,
+  .menu-pop,
+  .scrim,
+  details::details-content {
+    transition:
+      opacity var(--dur-fast) linear,
+      visibility 0s linear var(--dur-fast),
+      overlay var(--dur-fast) allow-discrete,
+      display var(--dur-fast) allow-discrete,
+      content-visibility var(--dur-fast) allow-discrete !important;
+    transform: none !important;
+  }
+  .menu-pop[data-open],
+  .scrim[data-open] {
+    transition-delay: 0s !important;
+  }
+  /* Page-to-page view transitions, if an app uses them. */
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
   }
 }
 

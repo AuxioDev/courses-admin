@@ -6,13 +6,14 @@ import { localePath } from "@/i18n/config";
 import { AppNav } from "@/components/app-nav";
 import { LanguageMenu } from "@/components/language-menu";
 import { ConfirmLabelsProvider } from "@/components/confirm-dialog";
+import { PageTransition } from "@/components/page-transition";
 
 // How many applications from the website nobody has answered yet. Nothing is shown at zero.
 async function NewApplications({ label }: { label: string }) {
   const count = await getNewApplicationCount();
   if (count === 0) return null;
   return (
-    <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-warn-soft px-1.5 text-[0.6875rem] font-bold text-warn">
+    <span className="arrive inline-flex min-w-5 items-center justify-center rounded-full bg-warn-soft px-1.5 text-[0.6875rem] font-bold text-warn">
       <span aria-hidden>{count > 99 ? "99+" : count}</span>
       <span className="sr-only">{fmt(label, { n: count })}</span>
     </span>
@@ -33,7 +34,9 @@ export default async function AppLayout({ children }: LayoutProps<"/[lang]">) {
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 pt-5 sm:px-6 md:pt-8">
-        <ConfirmLabelsProvider labels={t.dialog}>{children}</ConfirmLabelsProvider>
+        <PageTransition>
+          <ConfirmLabelsProvider labels={t.dialog}>{children}</ConfirmLabelsProvider>
+        </PageTransition>
       </main>
       <AppNav
         locale={locale}
