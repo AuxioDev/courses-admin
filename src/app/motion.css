@@ -115,3 +115,39 @@ main a[class*="rounded"]:active {
     transform: scale(0.7);
   }
 }
+
+/* A question box (useConfirm): fades and rises a little on the way in and out. `display` and `overlay` are listed so a
+   <dialog> can be animated while it closes too (allow-discrete). The global reduced-motion rule makes it appear at once. */
+.confirm-dialog {
+  opacity: 0;
+  transform: translateY(0.5rem) scale(0.98);
+  transition:
+    opacity var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out),
+    overlay var(--dur-base) allow-discrete,
+    display var(--dur-base) allow-discrete;
+}
+.confirm-dialog[open] {
+  opacity: 1;
+  transform: none;
+}
+.confirm-dialog::backdrop {
+  background: rgb(0 0 0 / 0.4);
+  opacity: 0;
+  transition:
+    opacity var(--dur-base) var(--ease-out),
+    overlay var(--dur-base) allow-discrete,
+    display var(--dur-base) allow-discrete;
+}
+.confirm-dialog[open]::backdrop {
+  opacity: 1;
+}
+@starting-style {
+  .confirm-dialog[open] {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.98);
+  }
+  .confirm-dialog[open]::backdrop {
+    opacity: 0;
+  }
+}
