@@ -129,7 +129,7 @@ function Bar({ locale, labels, pathname, applicationsBadge }: ViewProps) {
       <nav
         ref={root}
         aria-label={labels.main}
-        className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur md:hidden print:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden print:hidden"
       >
         {/* Always in the page, so it can fade out as well as in; closed, it cannot be tabbed into. */}
         <ul

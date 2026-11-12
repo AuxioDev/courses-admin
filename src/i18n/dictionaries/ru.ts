@@ -11,6 +11,7 @@ export const ru: Dictionary = {
   common: {
     save: "Сохранить",
     saving: "Сохранение…",
+    loading: "Загрузка…",
   },
   login: {
     title: "Вход",
@@ -600,6 +601,7 @@ export const ru: Dictionary = {
     security: "Безопасность",
     logoutEverywhere: "Выйти на всех устройствах",
     logoutEverywhereHint: "Используйте, если входили с чужого телефона или компьютера.",
+    timezoneSearch: "Найти часовой пояс…",
   },
   applications: {
     subtitle: "Заявки на место, отправленные с сайта.",

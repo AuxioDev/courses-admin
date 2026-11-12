@@ -41,7 +41,15 @@ async function Courses({ searchParams }: Pick<PageProps<"/[lang]/courses">, "sea
         </Link>
       </p>
       {courses.length === 0 ? (
-        <Empty>{t.courses.none}</Empty>
+        <Empty
+          action={
+            <Link href={localePath(locale, "/courses/new")} className="btn">
+              {t.courses.new}
+            </Link>
+          }
+        >
+          {t.courses.none}
+        </Empty>
       ) : (
         <Card className="p-0">
           <ul className="divide-y divide-line">

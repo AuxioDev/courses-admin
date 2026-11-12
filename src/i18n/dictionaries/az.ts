@@ -11,6 +11,7 @@ export const az: Dictionary = {
   common: {
     save: "Yadda saxla",
     saving: "Saxlanılır…",
+    loading: "Yüklənir…",
   },
   login: {
     title: "Daxil ol",
@@ -579,6 +580,7 @@ export const az: Dictionary = {
     security: "Təhlükəsizlik",
     logoutEverywhere: "Bütün cihazlardan çıxış et",
     logoutEverywhereHint: "Başqasının telefonunda və ya kompüterində daxil olmusunuzsa, bundan istifadə edin.",
+    timezoneSearch: "Saat qurşağı axtar…",
   },
   applications: {
     subtitle: "Saytdan göndərilən yer müraciətləri.",

@@ -3,6 +3,7 @@
 import { startTransition, useActionState } from "react";
 import type { Dictionary } from "@/i18n/dictionaries/en";
 import { saveTerm } from "@/app/actions";
+import { useEndAfterStart } from "@/lib/use-end-after-start";
 
 export function TermForm({
   term,
@@ -15,6 +16,7 @@ export function TermForm({
 }) {
   const [state, action, pending] = useActionState(saveTerm, undefined);
   const locked = term?.locked ?? false;
+  const order = useEndAfterStart(errors.termDates);
   return (
     // Not <form action>: React resets the form after an action, which would wipe what
     // the admin typed whenever a field is rejected.
@@ -35,11 +37,11 @@ export function TermForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
             <span className="mb-1 block text-sm font-medium">{labels.start}</span>
-            <input name="startDate" type="date" defaultValue={term?.startDate} required className="field disabled:opacity-60" />
+            <input name="startDate" type="date" defaultValue={term?.startDate} required {...order.start} className="field disabled:opacity-60" />
           </label>
           <label className="block">
             <span className="mb-1 block text-sm font-medium">{labels.end}</span>
-            <input name="endDate" type="date" defaultValue={term?.endDate} required className="field disabled:opacity-60" />
+            <input name="endDate" type="date" defaultValue={term?.endDate} required {...order.end} className="field disabled:opacity-60" />
           </label>
         </div>
       </fieldset>

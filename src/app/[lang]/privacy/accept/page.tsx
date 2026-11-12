@@ -23,7 +23,7 @@ export default async function AcceptPrivacyPage() {
       <h1 className="text-2xl font-semibold tracking-tight">{t.privacy.acceptTitle}</h1>
       <p className="mb-6 mt-1 text-sm text-muted">{t.privacy.acceptBody}</p>
       <PrivacyNotice t={t.privacy} />
-      <Suspense fallback={<Skeleton rows={1} />}>
+      <Suspense fallback={<Skeleton rows={1} label={t.common.loading} />}>
         <AcceptForm />
       </Suspense>
     </main>

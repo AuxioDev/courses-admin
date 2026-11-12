@@ -18,7 +18,7 @@ export default async function ResetPasswordPage({ searchParams }: PageProps<"/[l
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-6">
       <h1 className="text-2xl font-semibold tracking-tight">{t.password.resetTitle}</h1>
       <p className="mb-6 mt-1 text-sm text-muted">{t.password.resetSubtitle}</p>
-      <Suspense fallback={<Skeleton rows={2} />}>
+      <Suspense fallback={<Skeleton rows={2} label={t.common.loading} />}>
         <ResetForm searchParams={searchParams} />
       </Suspense>
       <Link href={localePath(locale, "/login")} className="mt-6 text-center text-sm text-accent">

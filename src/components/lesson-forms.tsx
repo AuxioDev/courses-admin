@@ -13,6 +13,7 @@ import {
 } from "@/app/actions";
 import { Feedback } from "./form-feedback";
 import { useConfirm } from "./confirm-dialog";
+import { useEndAfterStart } from "@/lib/use-end-after-start";
 
 type Text = { labels: Dictionary["lesson"]; errors: Dictionary["errors"]; ok: Dictionary["ok"] };
 type Action = (prev: FormState, data: FormData) => Promise<FormState>;
@@ -37,12 +38,16 @@ function SlotFields({
   values,
   min,
   max,
+  message,
 }: {
   labels: Text["labels"];
   values?: { day: string; start: string; end: string };
   min?: string;
   max?: string;
+  // Shown by the browser when the end is not later than the start.
+  message: string;
 }) {
+  const order = useEndAfterStart(message);
   return (
     <div className="grid grid-cols-2 gap-3">
       <label className="col-span-2 block">
@@ -51,11 +56,11 @@ function SlotFields({
       </label>
       <label className="block">
         <span className="mb-1 block text-sm font-medium">{labels.start}</span>
-        <input name="start" type="time" defaultValue={values?.start ?? "18:00"} required className="field" />
+        <input name="start" type="time" defaultValue={values?.start ?? "18:00"} required {...order.start} className="field" />
       </label>
       <label className="block">
         <span className="mb-1 block text-sm font-medium">{labels.end}</span>
-        <input name="end" type="time" defaultValue={values?.end ?? "19:30"} required className="field" />
+        <input name="end" type="time" defaultValue={values?.end ?? "19:30"} required {...order.end} className="field" />
       </label>
     </div>
   );
@@ -86,7 +91,7 @@ export function NewLessonForm({
           ))}
         </select>
       </label>
-      <SlotFields labels={labels} min={today} />
+      <SlotFields labels={labels} min={today} message={errors.lessonTimes} />
       <label className="block">
         <span className="mb-1 block text-sm font-medium">{labels.meetingUrl}</span>
         <input name="meetingUrl" type="url" placeholder="https://…" maxLength={2000} className="field" />
@@ -112,7 +117,7 @@ export function MoveForm({
   return (
     <form className="space-y-3" onSubmit={onSubmit}>
       <input type="hidden" name="lessonId" value={lessonId} />
-      <SlotFields labels={labels} values={values} min={min} max={max} />
+      <SlotFields labels={labels} values={values} min={min} max={max} message={errors.lessonTimes} />
       <button type="submit" disabled={pending} className="btn">
         {pending ? labels.saving : labels.move}
       </button>

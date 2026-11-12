@@ -30,9 +30,18 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
   return <div className={`rounded-2xl border border-line bg-surface ${padding} ${className}`}>{children}</div>;
 }
 
-export function Empty({ children }: { children: ReactNode }) {
+// An empty list. With `action` (a link or button) it also says what to do next.
+export function Empty({ children, action }: { children: ReactNode; action?: ReactNode }) {
+  if (!action) {
+    return (
+      <p className="rounded-2xl border border-dashed border-line px-4 py-6 text-center text-sm text-muted">{children}</p>
+    );
+  }
   return (
-    <p className="rounded-2xl border border-dashed border-line px-4 py-6 text-center text-sm text-muted">{children}</p>
+    <div className="rounded-2xl border border-dashed border-line px-4 py-6 text-center">
+      <p className="text-sm text-muted">{children}</p>
+      <div className="mt-3 flex justify-center">{action}</div>
+    </div>
   );
 }
 
@@ -54,9 +63,11 @@ export function Badge({ tone = "neutral", children }: { tone?: Tone; children: R
   );
 }
 
-export function Skeleton({ rows = 3 }: { rows?: number }) {
+// `label` is read out to screen readers while the real content is on its way ("Loading…", in the page's language).
+export function Skeleton({ rows = 3, label }: { rows?: number; label?: string }) {
   return (
-    <div className="space-y-3" aria-busy="true">
+    <div className="space-y-3" aria-busy="true" role={label ? "status" : undefined}>
+      {label && <span className="sr-only">{label}</span>}
       <div className="h-7 w-40 animate-pulse rounded-lg bg-surface-2" />
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="h-20 animate-pulse rounded-2xl bg-surface-2" />

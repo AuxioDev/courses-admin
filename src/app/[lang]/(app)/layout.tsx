@@ -25,7 +25,7 @@ export default async function AppLayout({ children }: LayoutProps<"/[lang]">) {
   const { locale, t } = await getI18n();
   return (
     <div className="min-h-dvh pb-24 md:pb-10 md:pl-56 print:p-0">
-      <header className="sticky top-0 z-10 border-b border-line bg-bg/90 backdrop-blur print:hidden">
+      <header className="sticky top-0 z-10 border-b border-line bg-bg/90 pt-[env(safe-area-inset-top)] backdrop-blur print:hidden">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6 md:justify-end">
           <Link href={localePath(locale, "/")} className="inline-flex min-h-11 items-center text-[0.9375rem] font-semibold tracking-tight md:hidden">
             {t.meta.appName}

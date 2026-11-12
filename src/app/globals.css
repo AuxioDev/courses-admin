@@ -141,7 +141,7 @@ body {
 }
 
 .field {
-  @apply w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-[15px] outline-none placeholder:text-muted focus:border-accent;
+  @apply w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-[0.9375rem] outline-none placeholder:text-muted focus:border-accent;
 }
 
 .btn {

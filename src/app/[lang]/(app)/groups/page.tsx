@@ -46,7 +46,15 @@ async function Groups({ searchParams }: Pick<PageProps<"/[lang]/groups">, "searc
         </button>
       </Form>
       {groups.length === 0 ? (
-        <Empty>{t.groups.none}</Empty>
+        <Empty
+          action={
+            <Link href={localePath(locale, "/groups/new")} className="btn">
+              {t.groups.new}
+            </Link>
+          }
+        >
+          {t.groups.none}
+        </Empty>
       ) : (
         <Card className="p-0">
           <ul className="divide-y divide-line">
