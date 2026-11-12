@@ -294,11 +294,15 @@ export const az: Dictionary = {
       isNew: "Yeni",
       exists: "Buraxılır",
       apply: "{n} hesab yarat",
+      applyConfirm: "İndi {n} hesab yaradılsın? Hər birinə yalnız bir dəfə göstərilən birdəfəlik şifrə veriləcək.",
       applying: "Hesablar yaradılır…",
       created: "{n} hesab yaradıldı. {skipped} buraxıldı.",
       passwordsOnce: "Bu müvəqqəti şifrələr bir daha göstərilməyəcək. İndi yükləyin və payladıqdan sonra faylı silin.",
       download: "Şifrələri yüklə (CSV)",
     },
+    sendLinkConfirm: "Bu şəxsə yeni şifrə seçmək üçün keçid göndərilsin?",
+    addAnotherConfirm: "Yuxarıdakı şifrə yox olacaq və yenidən göstərilməyəcək. Onu ötürmüsünüz?",
+    copyFailed: "Köçürmək alınmadı. Şifrəni seçib əllə köçürün.",
   },
   groups: {
     website: "Açıq sayt",
@@ -452,6 +456,7 @@ export const az: Dictionary = {
     none: "Hələ kurs yoxdur.",
     groups: { one: "{n} qrup", other: "{n} qrup" },
     archiveHint: "Arxivdəki kurslar yeni qruplar üçün seçilə bilməz. Mövcud qruplar işləməyə davam edir.",
+    archiveConfirm: "Bu kurs arxivə göndərilsin? Onu artıq yeni qruplar üçün seçmək olmaz. Mövcud qruplar işləməyə davam edir.",
   },
   terms: {
     new: "Yeni semestr",
@@ -497,6 +502,14 @@ export const az: Dictionary = {
       inHours: "{n} saat qalıb",
       inDays: "{n} gün qalıb",
     },
+  },
+  dialog: {
+    confirm: "Bəli, davam et",
+    cancel: "Ləğv et",
+  },
+  form: {
+    charsLeft: "{n} simvol qalıb",
+    charsOver: "{n} simvol artıqdır",
   },
   password: {
     changeTitle: "Şifrəni dəyiş",

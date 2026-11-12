@@ -12,21 +12,24 @@ import {
   type FormState,
 } from "@/app/actions";
 import { Feedback } from "./form-feedback";
+import { useConfirm } from "./confirm-dialog";
 
 type Text = { labels: Dictionary["lesson"]; errors: Dictionary["errors"]; ok: Dictionary["ok"] };
 type Action = (prev: FormState, data: FormData) => Promise<FormState>;
 
 // Not <form action>: React resets the form after an action, which would wipe what
 // the admin typed whenever something is rejected.
-function useKeptForm(serverAction: Action, confirm?: string) {
+function useKeptForm(serverAction: Action, confirmMessage?: string, danger = false) {
   const [state, action, pending] = useActionState(serverAction, undefined);
-  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const { confirm, dialog } = useConfirm();
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (confirm && !window.confirm(confirm)) return;
-    const data = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    if (confirmMessage && !(await confirm({ message: confirmMessage, danger }))) return;
+    const data = new FormData(form);
     startTransition(() => action(data));
   };
-  return { state, pending, onSubmit };
+  return { state, pending, onSubmit, dialog };
 }
 
 function SlotFields({
@@ -105,7 +108,7 @@ export function MoveForm({
   errors,
   ok,
 }: Text & { lessonId: string; values: { day: string; start: string; end: string }; min: string; max: string }) {
-  const { state, pending, onSubmit } = useKeptForm(moveLesson, labels.moveConfirm);
+  const { state, pending, onSubmit, dialog } = useKeptForm(moveLesson, labels.moveConfirm);
   return (
     <form className="space-y-3" onSubmit={onSubmit}>
       <input type="hidden" name="lessonId" value={lessonId} />
@@ -114,6 +117,7 @@ export function MoveForm({
         {pending ? labels.saving : labels.move}
       </button>
       <Feedback state={state} errors={errors} ok={ok} />
+      {dialog}
     </form>
   );
 }
@@ -126,7 +130,7 @@ export function TeacherForm({
   errors,
   ok,
 }: Text & { lessonId: string; currentTeacherId: string; teachers: { id: string; name: string }[] }) {
-  const { state, pending, onSubmit } = useKeptForm(changeLessonTeacher, labels.teacherConfirm);
+  const { state, pending, onSubmit, dialog } = useKeptForm(changeLessonTeacher, labels.teacherConfirm);
   return (
     <form className="space-y-3" onSubmit={onSubmit}>
       <input type="hidden" name="lessonId" value={lessonId} />
@@ -142,6 +146,7 @@ export function TeacherForm({
         {labels.changeTeacher}
       </button>
       <Feedback state={state} errors={errors} ok={ok} />
+      {dialog}
     </form>
   );
 }
@@ -183,7 +188,7 @@ function LessonButton({
   errors,
   ok,
 }: Omit<Text, "labels"> & { lessonId: string; action: Action; label: string; confirm?: string; danger?: boolean }) {
-  const { state, pending, onSubmit } = useKeptForm(serverAction, confirm);
+  const { state, pending, onSubmit, dialog } = useKeptForm(serverAction, confirm, danger);
   return (
     <form onSubmit={onSubmit}>
       <input type="hidden" name="lessonId" value={lessonId} />
@@ -191,6 +196,7 @@ function LessonButton({
         {label}
       </button>
       <Feedback state={state} errors={errors} ok={ok} />
+      {dialog}
     </form>
   );
 }

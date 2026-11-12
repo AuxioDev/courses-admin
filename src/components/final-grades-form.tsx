@@ -7,6 +7,7 @@ import { averageBand, formatAverage } from "@/lib/grading";
 import { saveFinalGrades, setTermLocked } from "@/app/actions";
 import { Feedback } from "./form-feedback";
 import { Badge } from "./ui";
+import { ConfirmForm, useConfirm } from "./confirm-dialog";
 
 type Row = {
   id: string;
@@ -36,6 +37,7 @@ export function FinalGradesForm({
   ok: Dictionary["ok"];
 }) {
   const [state, action, pending] = useActionState(saveFinalGrades, undefined);
+  const { confirm: ask, dialog } = useConfirm();
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(rows.map((r) => [r.id, r.value === null ? "" : String(r.value)])),
   );
@@ -128,10 +130,10 @@ export function FinalGradesForm({
             type="button"
             disabled={pending}
             className="btn"
-            onClick={() => {
+            onClick={async () => {
               const missing = rows.filter((r) => r.enrolled).length - filled;
               const message = fmt(labels.publishConfirm, { n: filled });
-              if (window.confirm(missing > 0 ? `${message}\n\n${fmt(labels.publishMissing, { n: missing })}` : message)) {
+              if (await ask({ message: missing > 0 ? `${message}\n\n${fmt(labels.publishMissing, { n: missing })}` : message, danger: false })) {
                 submit("publish");
               }
             }}
@@ -143,8 +145,8 @@ export function FinalGradesForm({
               type="button"
               disabled={pending}
               className="btn-ghost disabled:opacity-60"
-              onClick={() => {
-                if (window.confirm(labels.unpublishConfirm)) submit("unpublish");
+              onClick={async () => {
+                if (await ask({ message: labels.unpublishConfirm, danger: true })) submit("unpublish");
               }}
             >
               {labels.unpublish}
@@ -153,6 +155,7 @@ export function FinalGradesForm({
         </div>
       )}
       <Feedback state={state} errors={errors} ok={ok} />
+      {dialog}
     </div>
   );
 }
@@ -174,18 +177,13 @@ export function TermLockButton({
 }) {
   const [state, action, pending] = useActionState(setTermLocked, undefined);
   return (
-    <form
-      action={action}
-      onSubmit={(event) => {
-        if (!window.confirm(confirm)) event.preventDefault();
-      }}
-    >
+    <ConfirmForm action={action} message={confirm} danger={!locked}>
       <input type="hidden" name="termId" value={termId} />
       <input type="hidden" name="locked" value={String(!locked)} />
       <button type="submit" disabled={pending} className={locked ? "btn-ghost disabled:opacity-60" : "btn"}>
         {locked ? labels.unlock : labels.lock}
       </button>
       <Feedback state={state} errors={errors} ok={ok} />
-    </form>
+    </ConfirmForm>
   );
 }

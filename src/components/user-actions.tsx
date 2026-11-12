@@ -13,6 +13,7 @@ import {
 } from "@/app/actions";
 import { Feedback } from "./form-feedback";
 import { TempPasswordCard } from "./temp-password-card";
+import { ConfirmForm } from "./confirm-dialog";
 
 type Text = { labels: Dictionary["users"]; errors: Dictionary["errors"]; ok: Dictionary["ok"] };
 
@@ -93,31 +94,20 @@ function UserActionButton({
 }) {
   const [state, action, pending] = useActionState(serverAction, undefined);
   return (
-    <form
-      action={action}
-      onSubmit={(event) => {
-        if (confirm && !window.confirm(confirm)) event.preventDefault();
-      }}
-    >
+    <ConfirmForm action={action} message={confirm} danger={danger}>
       <input type="hidden" name="userId" value={userId} />
       <button type="submit" disabled={pending} className={`btn-ghost disabled:opacity-60 ${danger ? "text-bad" : ""}`}>
         {label}
       </button>
       <Feedback state={state} errors={errors} ok={ok} />
-    </form>
+    </ConfirmForm>
   );
 }
 
 export function TempPasswordButton({ userId, labels, errors }: Omit<Text, "ok"> & { userId: string }) {
   const [state, action, pending] = useActionState(issueTempPassword, undefined);
   return (
-    <form
-      action={action}
-      onSubmit={(event) => {
-        if (!window.confirm(labels.newPasswordConfirm)) event.preventDefault();
-      }}
-      className="space-y-2"
-    >
+    <ConfirmForm action={action} message={labels.newPasswordConfirm} danger={false} className="space-y-2">
       <input type="hidden" name="userId" value={userId} />
       <button type="submit" disabled={pending} className="btn-ghost disabled:opacity-60">
         {labels.newPassword}
@@ -128,12 +118,22 @@ export function TempPasswordButton({ userId, labels, errors }: Omit<Text, "ok"> 
         </p>
       )}
       {state?.account && <TempPasswordCard account={state.account} labels={labels} />}
-    </form>
+    </ConfirmForm>
   );
 }
 
 export function ResetLinkButton({ userId, labels, errors, ok }: Text & { userId: string }) {
-  return <UserActionButton userId={userId} action={sendUserResetLink} label={labels.sendLink} errors={errors} ok={ok} />;
+  return (
+    <UserActionButton
+      userId={userId}
+      action={sendUserResetLink}
+      label={labels.sendLink}
+      confirm={labels.sendLinkConfirm}
+      danger={false}
+      errors={errors}
+      ok={ok}
+    />
+  );
 }
 
 export function DeactivateButton({

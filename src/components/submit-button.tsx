@@ -12,18 +12,25 @@ export function SubmitButton({
   children,
   pendingLabel,
   className = "btn",
+  "aria-label": ariaLabel,
+  disabled = false,
 }: {
   children: ReactNode;
   pendingLabel?: ReactNode;
   className?: string;
+  // For a button that shows only an icon.
+  "aria-label"?: string;
+  // Held off for another reason, such as a file that is still going up.
+  disabled?: boolean;
 }) {
   const { pending } = useFormStatus();
   return (
     <button
       type="submit"
-      disabled={pending}
-      aria-disabled={pending}
+      disabled={pending || disabled}
+      aria-disabled={pending || disabled}
       aria-busy={pending}
+      aria-label={ariaLabel}
       data-pending={pending ? "" : undefined}
       className={`${className} disabled:opacity-60`}
     >

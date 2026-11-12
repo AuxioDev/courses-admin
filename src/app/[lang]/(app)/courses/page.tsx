@@ -6,6 +6,7 @@ import { localePath } from "@/i18n/config";
 import { Badge, Card, Empty, PageTitle } from "@/components/ui";
 import { setCourseArchived } from "@/app/actions";
 import { SubmitButton } from "@/components/submit-button";
+import { ConfirmForm } from "@/components/confirm-dialog";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -58,11 +59,11 @@ async function Courses({ searchParams }: Pick<PageProps<"/[lang]/courses">, "sea
                   <Link href={localePath(locale, `/courses/${course.id}/edit`)} className="btn-ghost">
                     {t.courses.edit}
                   </Link>
-                  <form action={setCourseArchived}>
+                  <ConfirmForm action={setCourseArchived} message={course.archived ? undefined : t.courses.archiveConfirm} danger={false}>
                     <input type="hidden" name="courseId" value={course.id} />
                     <input type="hidden" name="archived" value={String(!course.archived)} />
                     <SubmitButton className="btn-ghost">{course.archived ? t.courses.restore : t.courses.archive}</SubmitButton>
-                  </form>
+                  </ConfirmForm>
                 </div>
               </li>
             ))}

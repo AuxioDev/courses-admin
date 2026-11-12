@@ -5,6 +5,7 @@ import type { Dictionary } from "@/i18n/dictionaries/en";
 import { fmt } from "@/i18n/format";
 import { changeGroupTeacher, enrolStudents, saveGroup, setEnrollmentStatus } from "@/app/actions";
 import { Feedback } from "./form-feedback";
+import { ConfirmForm, useConfirm } from "./confirm-dialog";
 
 type Text = { labels: Dictionary["groups"]; errors: Dictionary["errors"]; ok: Dictionary["ok"] };
 type Options = {
@@ -154,13 +155,15 @@ export function TeacherChangeForm({
   preview: string;
 }) {
   const [state, action, pending] = useActionState(changeGroupTeacher, undefined);
+  const { confirm, dialog } = useConfirm();
   return (
     <form
       className="space-y-3"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault();
-        if (!window.confirm(`${labels.changeTeacherConfirm}\n\n${preview}`)) return;
-        const data = new FormData(event.currentTarget);
+        const form = event.currentTarget;
+        if (!(await confirm({ message: `${labels.changeTeacherConfirm}\n\n${preview}`, danger: false }))) return;
+        const data = new FormData(form);
         startTransition(() => action(data));
       }}
     >
@@ -180,6 +183,7 @@ export function TeacherChangeForm({
         {labels.changeTeacher}
       </button>
       <Feedback state={state} errors={errors} ok={ok} />
+      {dialog}
     </form>
   );
 }
@@ -267,18 +271,13 @@ export function EnrollmentButton({
 }) {
   const [state, action, pending] = useActionState(setEnrollmentStatus, undefined);
   return (
-    <form
-      action={action}
-      onSubmit={(event) => {
-        if (confirm && !window.confirm(confirm)) event.preventDefault();
-      }}
-    >
+    <ConfirmForm action={action} message={confirm}>
       <input type="hidden" name="enrollmentId" value={enrollmentId} />
       <input type="hidden" name="status" value={status} />
       <button type="submit" disabled={pending} className="btn-ghost disabled:opacity-60">
         {label}
       </button>
       {state?.error && <Feedback state={state} errors={errors} ok={ok} />}
-    </form>
+    </ConfirmForm>
   );
 }

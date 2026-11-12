@@ -56,11 +56,11 @@ export function FormMessage({ kind, children }: { kind: "success" | "error"; chi
 }
 
 // Shows how many characters are left once the limit is near; always takes the same room, so nothing jumps.
-export function CharCounter({ length, max, labels }: { length: number; max: number; labels: { left: string; over: string } }) {
+export function CharCounter({ length, max, labels }: { length: number; max: number; labels: { charsLeft: string; charsOver: string } }) {
   const state = counterState(length, max);
   return (
     <span aria-live={state.over ? "polite" : "off"} className={`block h-4 text-right text-xs ${state.over ? "text-bad" : "text-muted"}`}>
-      {state.show ? fmt(state.over ? labels.over : labels.left, { n: Math.abs(state.left) }) : ""}
+      {state.show ? fmt(state.over ? labels.charsOver : labels.charsLeft, { n: Math.abs(state.left) }) : ""}
     </span>
   );
 }
@@ -70,10 +70,12 @@ export function CopyButton({
   text,
   labels,
   className = "btn-ghost",
+  onCopied,
 }: {
   text: string;
   labels: { copy: string; copied: string; failed: string };
   className?: string;
+  onCopied?: () => void;
 }) {
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -82,6 +84,7 @@ export function CopyButton({
   async function copy() {
     const ok = await copyText(text);
     setState(ok ? "copied" : "failed");
+    if (ok) onCopied?.();
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setState("idle"), 2000);
   }

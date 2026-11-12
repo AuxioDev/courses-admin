@@ -7,6 +7,7 @@ import { localePath, type Locale } from "@/i18n/config";
 import { approveApplication, setApplicationStatus } from "@/app/actions";
 import { Feedback } from "./form-feedback";
 import { TempPasswordCard } from "./temp-password-card";
+import { ConfirmForm } from "./confirm-dialog";
 
 type Text = {
   labels: Dictionary["applications"];
@@ -25,19 +26,14 @@ function StatusButton({
 }: Pick<Text, "errors" | "ok"> & { applicationId: string; status: "contacted" | "rejected"; label: string; confirm?: string }) {
   const [state, action, pending] = useActionState(setApplicationStatus, undefined);
   return (
-    <form
-      action={action}
-      onSubmit={(event) => {
-        if (confirm && !window.confirm(confirm)) event.preventDefault();
-      }}
-    >
+    <ConfirmForm action={action} message={confirm} danger={status === "rejected"}>
       <input type="hidden" name="applicationId" value={applicationId} />
       <input type="hidden" name="status" value={status} />
       <button type="submit" disabled={pending} className={`btn-ghost disabled:opacity-60 ${status === "rejected" ? "text-bad" : ""}`}>
         {label}
       </button>
       <Feedback state={state} errors={errors} ok={ok} />
-    </form>
+    </ConfirmForm>
   );
 }
 
@@ -75,12 +71,7 @@ export function ApplicationActions({
 
   return (
     <div className="space-y-4">
-      <form
-        action={action}
-        onSubmit={(event) => {
-          if (!window.confirm(`${labels.approveConfirm}\n\n${approveHint}`)) event.preventDefault();
-        }}
-      >
+      <ConfirmForm action={action} message={`${labels.approveConfirm}\n\n${approveHint}`} danger={false}>
         <input type="hidden" name="applicationId" value={applicationId} />
         <button type="submit" disabled={pending} className="btn">
           {pending ? labels.approving : labels.approve}
@@ -91,7 +82,7 @@ export function ApplicationActions({
             {errors[state.error]}
           </p>
         )}
-      </form>
+      </ConfirmForm>
       <div className="flex flex-wrap gap-2">
         {status === "new" && (
           <StatusButton applicationId={applicationId} status="contacted" label={labels.markContacted} errors={errors} ok={ok} />

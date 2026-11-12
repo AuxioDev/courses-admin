@@ -5,6 +5,7 @@ import { getNewApplicationCount } from "@/lib/data";
 import { localePath } from "@/i18n/config";
 import { AppNav } from "@/components/app-nav";
 import { LanguageMenu } from "@/components/language-menu";
+import { ConfirmLabelsProvider } from "@/components/confirm-dialog";
 
 // How many applications from the website nobody has answered yet. Nothing is shown at zero.
 async function NewApplications({ label }: { label: string }) {
@@ -31,7 +32,9 @@ export default async function AppLayout({ children }: LayoutProps<"/[lang]">) {
           <LanguageMenu locale={locale} label={t.profile.language} saveToAccount />
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 pt-5 sm:px-6 md:pt-8">{children}</main>
+      <main className="mx-auto max-w-6xl px-4 pt-5 sm:px-6 md:pt-8">
+        <ConfirmLabelsProvider labels={t.dialog}>{children}</ConfirmLabelsProvider>
+      </main>
       <AppNav
         locale={locale}
         labels={{ ...t.nav, appName: t.meta.appName }}

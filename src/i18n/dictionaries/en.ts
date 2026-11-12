@@ -296,11 +296,15 @@ export const en = {
       isNew: "New",
       exists: "Skipped",
       apply: "Create {n} accounts",
+      applyConfirm: "Create {n} accounts now? Each gets a one-time password that is shown only once.",
       applying: "Creating accounts…",
       created: "Created {n} accounts. Skipped {skipped}.",
       passwordsOnce: "These temporary passwords won't be shown again. Download them now and delete the file once they're handed out.",
       download: "Download passwords (CSV)",
     },
+    sendLinkConfirm: "Email this person a link to choose a new password?",
+    addAnotherConfirm: "The password above will disappear and cannot be shown again. Have you passed it on?",
+    copyFailed: "Couldn't copy. Select the password and copy it by hand.",
   },
   groups: {
     website: "Public website",
@@ -454,6 +458,7 @@ export const en = {
     none: "No courses yet.",
     groups: { one: "{n} group", other: "{n} groups" },
     archiveHint: "Archived courses can't be chosen for new groups. Groups already on them keep working.",
+    archiveConfirm: "Archive this course? It can no longer be chosen for new groups. Groups already on it keep working.",
   },
   terms: {
     new: "New term",
@@ -500,6 +505,14 @@ export const en = {
       inHours: "due in {n}h",
       inDays: "due in {n}d",
     },
+  },
+  dialog: {
+    confirm: "Yes, continue",
+    cancel: "Cancel",
+  },
+  form: {
+    charsLeft: "{n} characters left",
+    charsOver: "{n} characters too many",
   },
   password: {
     changeTitle: "Change password",

@@ -6,24 +6,35 @@ import type { Dictionary } from "@/i18n/dictionaries/en";
 import { localePath, type Locale } from "@/i18n/config";
 import { createUser } from "@/app/actions";
 import { TempPasswordCard } from "./temp-password-card";
+import { useConfirm } from "./confirm-dialog";
 
 type Props = { locale: Locale; labels: Dictionary["users"]; errors: Dictionary["errors"] };
 
 function Form({ locale, labels, errors, onAnother }: Props & { onAnother: () => void }) {
   const [state, action, pending] = useActionState(createUser, undefined);
+  const [copied, setCopied] = useState(false);
+  const { confirm, dialog } = useConfirm();
 
   if (state?.account) {
     return (
       <div className="space-y-4">
-        <TempPasswordCard account={state.account} labels={labels} />
+        <TempPasswordCard account={state.account} labels={labels} onCopied={() => setCopied(true)} />
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={onAnother} className="btn">
+          {/* Starting over forgets the password just shown, so ask unless it was copied. */}
+          <button
+            type="button"
+            onClick={async () => {
+              if (copied || (await confirm({ message: labels.addAnotherConfirm, danger: true }))) onAnother();
+            }}
+            className="btn"
+          >
             {labels.addAnother}
           </button>
           <Link href={localePath(locale, `/users/${state.account.id}`)} className="btn-ghost">
             {labels.openUser}
           </Link>
         </div>
+        {dialog}
       </div>
     );
   }

@@ -6,6 +6,8 @@ import { fmt } from "@/i18n/format";
 import { csvFile } from "@/lib/csv";
 import { applyStudentImport, checkStudentImport } from "@/app/actions";
 import { Badge } from "./ui";
+import { useConfirm } from "./confirm-dialog";
+import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 
 type Props = { labels: Dictionary["users"]; errors: Dictionary["errors"] };
 
@@ -14,8 +16,11 @@ function download(rows: string[][]) {
   const link = document.createElement("a");
   link.href = url;
   link.download = "temporary-passwords.csv";
+  // In the page while it is clicked (Firefox needs that), and the file is let go only once the browser has started it.
+  document.body.append(link);
   link.click();
-  URL.revokeObjectURL(url);
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 export function StudentImport({ labels, errors }: Props) {
@@ -24,6 +29,10 @@ export function StudentImport({ labels, errors }: Props) {
   const [checkedText, setCheckedText] = useState<string | null>(null);
   const [checkState, check, checking] = useActionState(checkStudentImport, undefined);
   const [applyState, apply, applying] = useActionState(applyStudentImport, undefined);
+  const { confirm, dialog } = useConfirm();
+  // The passwords are shown once, here: until the file is saved, leaving the page asks first.
+  const [downloaded, setDownloaded] = useState(false);
+  useUnsavedWarning(!!applyState?.created && !downloaded);
 
   if (applyState?.created) {
     const { created, skipped = 0 } = applyState;
@@ -36,12 +45,13 @@ export function StudentImport({ labels, errors }: Props) {
         <button
           type="button"
           className="btn"
-          onClick={() =>
+          onClick={() => {
             download([
               [labels.name, labels.email, labels.passwordTitle],
               ...created.map((c) => [c.name, c.email, c.password]),
-            ])
-          }
+            ]);
+            setDownloaded(true);
+          }}
         >
           {labels.csv.download}
         </button>
@@ -161,7 +171,8 @@ export function StudentImport({ labels, errors }: Props) {
               type="button"
               disabled={checking || applying}
               className="btn"
-              onClick={() => {
+              onClick={async () => {
+                if (!(await confirm({ message: fmt(labels.csv.applyConfirm, { n: fresh }), danger: false }))) return;
                 const data = new FormData();
                 data.set("csv", text);
                 startTransition(() => apply(data));
@@ -172,6 +183,7 @@ export function StudentImport({ labels, errors }: Props) {
           )}
         </div>
       )}
+      {dialog}
     </div>
   );
 }
