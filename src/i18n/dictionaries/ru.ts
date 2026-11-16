@@ -614,6 +614,7 @@ export const ru: Dictionary = {
     noneFiltered: "Нет заявок, подходящих под эти фильтры.",
     seatsLeft: "Свободных мест: {n}",
     noLimit: "Без ограничения мест",
+    trial: "Пробный урок",
     seats: "Места",
     contact: "Контактные данные",
     phone: "Телефон",

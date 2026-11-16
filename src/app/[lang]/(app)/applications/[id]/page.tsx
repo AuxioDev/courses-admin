@@ -8,6 +8,7 @@ import { localePath } from "@/i18n/config";
 import { Badge, Card, PageTitle, type Tone } from "@/components/ui";
 import { ChevronLeft } from "@/components/icons";
 import { ApplicationActions } from "@/components/application-actions";
+import { noteWithoutTrial, wantsTrial } from "@/lib/trial";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -65,6 +66,7 @@ async function Application({ params }: Pick<PageProps<"/[lang]/applications/[id]
         subtitle={
           <span className="mt-1 flex flex-wrap items-center gap-2">
             <Badge tone={tone[application.status]}>{a.status[application.status]}</Badge>
+            {wantsTrial(application.note) && <Badge tone="accent">{a.trial}</Badge>}
             <span>{formatDateTime(application.createdAt, application.timezone, locale)}</span>
           </span>
         }
@@ -93,7 +95,7 @@ async function Application({ params }: Pick<PageProps<"/[lang]/applications/[id]
               </Row>
             )}
             <Row label={a.language}>{application.locale.toUpperCase()}</Row>
-            {application.note && <Row label={a.note}>{application.note}</Row>}
+            {noteWithoutTrial(application.note) && <Row label={a.note}>{noteWithoutTrial(application.note)}</Row>}
           </dl>
         </Card>
         <div className="space-y-4">

@@ -593,6 +593,7 @@ export const az: Dictionary = {
     noneFiltered: "Bu filtrlərə uyğun müraciət yoxdur.",
     seatsLeft: "Boş yer: {n}",
     noLimit: "Yer limiti yoxdur",
+    trial: "Sınaq dərsi",
     seats: "Yerlər",
     contact: "Əlaqə məlumatları",
     phone: "Telefon",

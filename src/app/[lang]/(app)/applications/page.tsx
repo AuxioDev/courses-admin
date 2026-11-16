@@ -88,7 +88,10 @@ async function Applications({ searchParams }: Pick<PageProps<"/[lang]/applicatio
                     </p>
                   </div>
                   <p className="font-mono text-xs text-muted">{formatDateTime(row.createdAt, timezone, locale)}</p>
-                  <Badge tone={applicationTone[row.status]}>{a.status[row.status]}</Badge>
+                  <span className="flex items-center gap-1.5">
+                    {row.trial && <Badge tone="accent">{a.trial}</Badge>}
+                    <Badge tone={applicationTone[row.status]}>{a.status[row.status]}</Badge>
+                  </span>
                 </Link>
               </li>
             ))}

@@ -596,6 +596,7 @@ export const en = {
     noneFiltered: "No applications match these filters.",
     seatsLeft: "Seats left: {n}",
     noLimit: "No seat limit",
+    trial: "Trial lesson",
     seats: "Seats",
     contact: "Contact details",
     phone: "Phone",

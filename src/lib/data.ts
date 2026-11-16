@@ -5,6 +5,7 @@ import { db } from "./db";
 import { getCurrentAdmin } from "./auth";
 import { addDays, dayKey, formatTime, isDayKey, startOfDay, startOfWeek } from "./dates";
 import { findLessonOverlaps } from "./lesson-rules";
+import { wantsTrial } from "./trial";
 import { cancelBlock, linkBlock, moveBlock, restoreBlock, teacherBlock } from "./lesson-state";
 import { SCHOOL_TIMEZONE } from "./school";
 import { sortRules } from "./schedule-rules";
@@ -689,6 +690,8 @@ export async function getApplications(filters: { status?: unknown; group?: unkno
       id: true,
       name: true,
       phone: true,
+      // Only to see whether a trial lesson was asked for; the text itself is not passed on to the list.
+      note: true,
       status: true,
       createdAt: true,
       group: {
@@ -696,8 +699,9 @@ export async function getApplications(filters: { status?: unknown; group?: unkno
       },
     },
   });
-  const applications = rows.map(({ group, ...row }) => ({
+  const applications = rows.map(({ group, note, ...row }) => ({
     ...row,
+    trial: wantsTrial(note),
     group: { id: group.id, name: group.name, course: group.course.title, seatsLeft: seatsLeft(group.capacity, group._count.enrollments) },
   }));
   return { applications, groups, status, groupId, page, pages, total, timezone: admin.timezone };
