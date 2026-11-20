@@ -6,6 +6,7 @@ import { getI18n } from "@/i18n";
 import "../globals.css";
 import "../role-theme.css";
 import "../motion.css";
+import "../brand.css";
 
 const bodyFont = Geologica({
   // The shared stylesheet names its sans and mono variables after Geist, so these keep those names.

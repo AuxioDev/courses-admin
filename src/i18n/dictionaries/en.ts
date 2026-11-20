@@ -6,7 +6,7 @@ import { studentMessagesEn } from "./student-messages";
 export const en = {
   ...studentMessagesEn,
   meta: {
-    appName: "Admin Panel",
+    appName: "SkyEd Admin Panel",
     description: "Set up courses, people, groups, schedules and terms.",
   },
   nav: { dashboard: "Dashboard", courses: "Courses", users: "Users", groups: "Groups", applications: "Applications", schedule: "Schedule", terms: "Terms", reports: "Reports", settings: "Settings", profile: "Profile", more: "More", main: "Main" },

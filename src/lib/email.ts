@@ -31,7 +31,7 @@ export async function sendEmail(email: Email): Promise<boolean> {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: process.env.EMAIL_FROM ?? "Student Diary <onboarding@resend.dev>",
+      from: process.env.EMAIL_FROM ?? "SkyEd <onboarding@resend.dev>",
       to: [email.to],
       subject: email.subject,
       html: email.html,
@@ -66,6 +66,7 @@ export function emailLayout(opts: {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" style="max-width:480px;background:#ffffff;border:1px solid #d5dfe7;border-radius:16px" cellpadding="0" cellspacing="0">
 <tr><td style="padding:24px">
+<p style="margin:0 0 20px;font-size:22px;letter-spacing:-0.02em;color:#141a2e"><b>Sky</b><span style="color:#03357e;font-weight:normal">Ed</span></p>
 <p style="margin:0 0 16px;font-size:14px;color:#566a7a">${e.greeting}</p>
 <h1 style="margin:0 0 8px;font-size:20px;line-height:1.3">${e.title}</h1>
 <p style="margin:0 0 20px;font-size:15px;line-height:1.5">${e.body}</p>

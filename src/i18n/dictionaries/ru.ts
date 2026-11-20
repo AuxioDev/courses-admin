@@ -4,7 +4,7 @@ import { studentMessagesRu } from "./student-messages";
 export const ru: Dictionary = {
   ...studentMessagesRu,
   meta: {
-    appName: "Панель администратора",
+    appName: "SkyEd Панель администратора",
     description: "Настройка курсов, людей, групп, расписания и семестров.",
   },
   nav: { dashboard: "Главная", courses: "Курсы", users: "Пользователи", groups: "Группы", applications: "Заявки", schedule: "Расписание", terms: "Семестры", reports: "Отчёты", settings: "Настройки", profile: "Профиль", more: "Ещё", main: "Главное меню" },

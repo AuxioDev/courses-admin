@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { Brand } from "@/components/brand";
 import { fmt, getI18n } from "@/i18n";
 import { getNewApplicationCount } from "@/lib/data";
 import { localePath } from "@/i18n/config";
@@ -28,7 +29,7 @@ export default async function AppLayout({ children }: LayoutProps<"/[lang]">) {
       <header className="sticky top-0 z-10 border-b border-line bg-bg/90 pt-[env(safe-area-inset-top)] backdrop-blur print:hidden">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6 md:justify-end">
           <Link href={localePath(locale, "/")} className="inline-flex min-h-11 items-center text-[0.9375rem] font-semibold tracking-tight md:hidden">
-            {t.meta.appName}
+            <Brand name={t.meta.appName} />
           </Link>
           <LanguageMenu locale={locale} label={t.profile.language} saveToAccount />
         </div>

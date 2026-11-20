@@ -1,0 +1,47 @@
+/* The SkyEd wordmark (components/brand.tsx): "Ed" is the brand blue from the logo, #03357e. On a dark page the same
+   blue would vanish, so dark uses a lighter tint of it. A choice made in Profile (data-theme) beats the device setting. */
+:root {
+  --brand-ed: #03357e;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --brand-ed: #7fa6ff;
+  }
+}
+:root[data-theme="dark"] {
+  --brand-ed: #7fa6ff;
+}
+.brand-sky {
+  font-weight: 700;
+}
+.brand-ed {
+  color: var(--brand-ed);
+  font-weight: 400;
+}
+.brand-role {
+  font-weight: 500;
+}
+
+/* The mark is navy: on a dark surface it sits on a small white tile so it stays visible. */
+.brand-mark {
+  border-radius: 0.5rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .brand-mark {
+    background: #ffffff;
+    padding: 2px;
+  }
+}
+:root[data-theme="dark"] .brand-mark {
+  background: #ffffff;
+  padding: 2px;
+}
+
+/* The side navigation is deep indigo in both themes (role-theme.css), so its wordmark and mark use light tones. */
+aside .brand-ed {
+  color: #aebcff;
+}
+aside .brand-mark {
+  background: #ffffff;
+  padding: 2px;
+}

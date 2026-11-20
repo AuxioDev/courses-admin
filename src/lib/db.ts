@@ -5,7 +5,10 @@ import { PrismaClient } from "@/generated/prisma/client";
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 function createClient() {
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+  // pg reads sslmode=require/prefer/verify-ca as verify-full and logs a warning that this changes in pg v9.
+  // Saying verify-full is the same behaviour without the warning on every cold start.
+  const connectionString = process.env.DATABASE_URL?.replace(/([?&]sslmode=)(?:require|prefer|verify-ca)\b/, "$1verify-full");
+  const adapter = new PrismaPg({ connectionString });
   return new PrismaClient({ adapter });
 }
 
