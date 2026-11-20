@@ -4,6 +4,7 @@
    byte for byte), so everything that differs lives here. Contrast is checked by
    src/lib/__tests__/contrast.test.ts, including the colours the side navigation re-scopes. */
 :root {
+  color-scheme: light;
   --bg: #eef0f6;
   --surface: #ffffff;
   --surface-2: #e3e6f1;
@@ -14,10 +15,17 @@
   --accent-ink: #ffffff;
   --accent-soft: #e6e9f8;
   --grid: #e1e5f1;
+  --good: #16794c;
+  --good-soft: #e2f3ea;
+  --warn: #8f5500;
+  --warn-soft: #fbf0dc;
+  --bad: #b3261e;
+  --bad-soft: #fbe6e4;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --bg: #0e1122;
     --surface: #161a33;
     --surface-2: #1f2444;
@@ -28,7 +36,34 @@
     --accent-ink: #12163a;
     --accent-soft: #262d52;
     --grid: #141830;
+    --good: #52c78f;
+    --good-soft: #1f4234;
+    --warn: #f0b65a;
+    --warn-soft: #40331c;
+    --bad: #ff9a90;
+    --bad-soft: #4a2a2b;
   }
+}
+
+/* A choice made with the switch beside the language menu (data-theme, set before first paint by <ThemeBoot>) beats the device setting. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e1122;
+  --surface: #161a33;
+  --surface-2: #1f2444;
+  --ink: #e6e9fb;
+  --muted: #a1a8d0;
+  --line: #2b3159;
+  --accent: #9aa8f0;
+  --accent-ink: #12163a;
+  --accent-soft: #262d52;
+  --grid: #141830;
+  --good: #52c78f;
+  --good-soft: #1f4234;
+  --warn: #f0b65a;
+  --warn-soft: #40331c;
+  --bad: #ff9a90;
+  --bad-soft: #4a2a2b;
 }
 
 /* Timetable paper: a square every 3rem. */
@@ -64,7 +99,7 @@ aside {
   --accent: #d6dbff;
 }
 @media (prefers-color-scheme: dark) {
-  aside {
+  :root:not([data-theme="light"]) aside {
     --surface-2: #0a0d24;
     --surface: #161b4a;
     --ink: #e6e9fb;
@@ -72,6 +107,14 @@ aside {
     --line: #232a66;
     --accent: #b4c0ff;
   }
+}
+:root[data-theme="dark"] aside {
+  --surface-2: #0a0d24;
+  --surface: #161b4a;
+  --ink: #e6e9fb;
+  --muted: #a8afd9;
+  --line: #232a66;
+  --accent: #b4c0ff;
 }
 
 /* A stamp marks an exception, so only warnings and errors are stamped. Routine states (done, active,

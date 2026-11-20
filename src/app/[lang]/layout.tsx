@@ -7,6 +7,7 @@ import "../globals.css";
 import "../role-theme.css";
 import "../motion.css";
 import "../brand.css";
+import { ThemeBoot } from "@/components/theme-boot";
 
 const bodyFont = Geologica({
   // The shared stylesheet names its sans and mono variables after Geist, so these keep those names.
@@ -49,8 +50,11 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
   return (
-    <html lang={await lang()} className={`${bodyFont.variable} ${monoFont.variable} h-full antialiased`}>
-      <body className="min-h-full font-sans">{children}</body>
+    <html lang={await lang()} className={`${bodyFont.variable} ${monoFont.variable} h-full antialiased`} suppressHydrationWarning>
+      <body className="min-h-full font-sans">
+        <ThemeBoot />
+        {children}
+      </body>
     </html>
   );
 }

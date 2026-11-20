@@ -6,6 +6,7 @@ import { getI18n } from "@/i18n";
 import { localePath } from "@/i18n/config";
 import { LoginForm } from "./login-form";
 import { LanguageMenu } from "@/components/language-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -18,7 +19,8 @@ export default async function LoginPage() {
   const { locale, t } = await getI18n();
   return (
     <main className="relative grid min-h-dvh lg:grid-cols-2">
-      <div className="absolute right-4 top-4 z-20">
+      <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
+        <ThemeToggle labels={{ theme: t.profile.theme, dark: t.profile.themeDark }} />
         <LanguageMenu locale={locale} label={t.profile.language} />
       </div>
       <div className="absolute inset-0 lg:relative lg:col-start-2 lg:row-start-1">

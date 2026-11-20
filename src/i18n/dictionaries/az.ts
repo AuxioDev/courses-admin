@@ -575,6 +575,8 @@ export const az: Dictionary = {
   profile: {
     title: "Profil",
     language: "Dil",
+    theme: "Tema",
+    themeDark: "Tünd",
     timezone: "Saat qurşağı",
     logout: "Çıxış",
     security: "Təhlükəsizlik",

@@ -22,9 +22,9 @@ const roleCss = read("../../app/role-theme.css");
 const role = split(roleCss);
 
 // Colours an app re-scopes for one part of the page, e.g. the Admin Panel's indigo side navigation:
-// `aside { --ink: ...; }`, with a second `aside` block inside the dark media query.
+// `aside { --ink: ...; }`, with a second one for dark (`:root:not([data-theme="light"]) aside`, inside the dark media query, and `:root[data-theme="dark"] aside`).
 const asideVars = (css: string) =>
-  [...css.matchAll(/(?:^|\n)[ \t]*aside[ \t]*\{([^}]*)\}/g)].map((m) =>
+  [...css.matchAll(/(?:^|\n)[ \t]*(?::root[^\n{]*\s)?aside[ \t]*\{([^}]*)\}/g)].map((m) =>
     Object.fromEntries([...m[1].matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{6})\s*;/g)].map((v) => [v[1], v[2].toLowerCase()])),
   );
 const asides = asideVars(roleCss);
